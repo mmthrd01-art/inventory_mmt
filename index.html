@@ -233,11 +233,48 @@ function attachListeners(){
   });
 }
 
-async function uploadPhoto(file, folder){
+async function compressImage(file, maxDim, quality){
+  maxDim = maxDim || 1280; quality = quality || 0.72;
+  if(!file || !file.type || !file.type.startsWith('image/')) return file;
+  try{
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+    if(width > maxDim || height > maxDim){
+      const ratio = Math.min(maxDim/width, maxDim/height);
+      width = Math.round(width*ratio); height = Math.round(height*ratio);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+    if(!blob || blob.size >= file.size) return file; // jika hasil kompres tidak lebih kecil, pakai file asli
+    return new File([blob], (file.name||'foto').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch(e){
+    return file; // kalau gagal kompres (browser lama dll), pakai file asli
+  }
+}
+
+async function uploadPhoto(file, folder, onProgress){
   if(!file || !storage) return "";
-  const ref = storage.ref().child(folder + '/' + Date.now() + '_' + file.name);
-  await ref.put(file);
-  return await ref.getDownloadURL();
+  const compressed = await compressImage(file);
+  const ref = storage.ref().child(folder + '/' + Date.now() + '_' + compressed.name);
+  return await new Promise((resolve, reject)=>{
+    const task = ref.put(compressed);
+    task.on('state_changed',
+      (snap)=>{
+        if(onProgress){
+          const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+          onProgress(pct);
+        }
+      },
+      (err)=> reject(err),
+      async ()=>{
+        try{ const url = await task.snapshot.ref.getDownloadURL(); resolve(url); }
+        catch(err){ reject(err); }
+      }
+    );
+  });
 }
 
 /* =========================================================================
@@ -933,7 +970,7 @@ function bindModalEvents(){
     submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
     let fotoURL = editing ? editing.fotoURL || "" : "";
     try{
-      if(file && file.size > 0) fotoURL = await uploadPhoto(file, 'alatTeknisi');
+      if(file && file.size > 0) fotoURL = await uploadPhoto(file, 'alatTeknisi', (pct)=>{ submitBtn.textContent = `Mengupload foto ${pct}%...`; });
       const payload = {
         namaTeknisi: fd.get('namaTeknisi')||'', namaAlat: fd.get('namaAlat')||'',
         merek: fd.get('merek')||'', jumlah: fd.get('jumlah')||0, kondisi: fd.get('kondisi')||'Baik',
@@ -959,7 +996,7 @@ function bindModalEvents(){
     submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
     let fotoURL = editing ? editing.fotoURL || "" : "";
     try{
-      if(file && file.size > 0) fotoURL = await uploadPhoto(file, 'stokMaterial');
+      if(file && file.size > 0) fotoURL = await uploadPhoto(file, 'stokMaterial', (pct)=>{ submitBtn.textContent = `Mengupload foto ${pct}%...`; });
       const payload = {
         fotoURL, namaAlat: fd.get('namaAlat')||'', jenis: fd.get('jenis')||'',
         jumlahPcs: fd.get('jumlahPcs')||0, total: fd.get('total')||'', harga: fd.get('harga')||0,
@@ -996,9 +1033,9 @@ function bindModalEvents(){
       let fotoKembali = editing ? editing.timbangKembaliFoto || "" : "";
       try{
         const fSebelum = fd.get('fotoSebelum'), fIsiToko = fd.get('fotoIsiToko'), fKembali = fd.get('fotoKembali');
-        if(fSebelum && fSebelum.size > 0) fotoSebelum = await uploadPhoto(fSebelum, 'peminjamanFreon');
-        if(fIsiToko && fIsiToko.size > 0) fotoIsiToko = await uploadPhoto(fIsiToko, 'peminjamanFreon');
-        if(fKembali && fKembali.size > 0) fotoKembali = await uploadPhoto(fKembali, 'peminjamanFreon');
+        if(fSebelum && fSebelum.size > 0) fotoSebelum = await uploadPhoto(fSebelum, 'peminjamanFreon', (pct)=>{ submitBtn.textContent = `Upload foto 1/3: ${pct}%`; });
+        if(fIsiToko && fIsiToko.size > 0) fotoIsiToko = await uploadPhoto(fIsiToko, 'peminjamanFreon', (pct)=>{ submitBtn.textContent = `Upload foto 2/3: ${pct}%`; });
+        if(fKembali && fKembali.size > 0) fotoKembali = await uploadPhoto(fKembali, 'peminjamanFreon', (pct)=>{ submitBtn.textContent = `Upload foto 3/3: ${pct}%`; });
 
         const sebelum = fd.get('timbangSebelumNilai');
         const isiToko = fd.get('isiTokoNilai');
