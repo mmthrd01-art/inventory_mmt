@@ -2,1100 +2,695 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inventory Simitra - CV Mitra Multi Teknik</title>
-
-<!-- ======================================================================
-  INVENTORY SIMITRA
-  CV Mitra Multi Teknik
-
-  CARA SETUP (WAJIB DIBACA):
-  1. Buka https://console.firebase.google.com -> buat project baru (gratis).
-  2. Di project, aktifkan "Firestore Database" (mode production/test) dan
-     "Storage" (untuk simpan foto alat).
-  3. Buka Project Settings -> General -> Your apps -> tambah Web App.
-     Copy "firebaseConfig" yang muncul, lalu tempel/ganti di bagian
-     FIREBASE_CONFIG di bawah ini (cari tulisan "GANTI_DENGAN_...").
-  4. Di Firestore -> Rules, untuk mulai cepat bisa pakai rules test mode:
-        allow read, write: if true;
-     (Nanti sebaiknya diperketat dengan Firebase Auth jika perlu.)
-  5. Simpan file ini, lalu buka langsung dengan browser (double click),
-     atau upload ke hosting (Firebase Hosting / cPanel / dll).
-  6. Login pakai Username: MMT , Password: 1234 (bisa diganti di kode,
-     cari APP_USERNAME / APP_PASSWORD di bawah).
-======================================================================= -->
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventory Mitra Multi Teknik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Firebase (compat SDK) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
-
 <style>
-  :root{
-    --navy:#0f2942;
-    --navy-light:#1a3d5c;
-    --accent:#f7941d;
-    --accent-dark:#d97a06;
-    --bg:#f4f6f9;
-    --card:#ffffff;
-    --border:#e2e6ec;
-    --text:#1f2937;
-    --muted:#6b7280;
-    --green:#16a34a;
-    --red:#dc2626;
-    --yellow:#d97706;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);}
-  #app{min-height:100vh;}
+:root{
+  --navy:#0a2a66; --navy2:#0d3b8c; --blue:#1565c0; --blue2:#1e88e5;
+  --sky:#e8f3fd; --sky2:#cfe6fb; --sky3:#9fd0f7; --line:#c9ddf2;
+  --ink:#0b2147; --muted:#5a7396; --white:#fff;
+  --ok:#1b8a5a; --okbg:#dcf5e8; --bad:#c62828; --badbg:#fde4e4; --warn:#b26a00; --warnbg:#fff0d6;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--sky);color:var(--ink);font-size:14.5px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue2);outline-offset:2px}
 
-  /* ---------- LOGIN ---------- */
-  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);}
-  .login-box{background:var(--card);padding:40px 36px;border-radius:16px;width:340px;
-    box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;}
-  .login-box h1{font-size:22px;margin:0 0 2px;color:var(--navy);}
-  .login-box .sub{color:var(--muted);font-size:13px;margin-bottom:24px;}
-  .login-box input{width:100%;padding:11px 14px;margin-bottom:12px;border:1px solid var(--border);
-    border-radius:8px;font-size:14px;}
-  .login-box button{width:100%;padding:12px;background:var(--accent);border:none;color:white;
-    font-weight:600;border-radius:8px;font-size:15px;cursor:pointer;margin-top:6px;}
-  .login-box button:hover{background:var(--accent-dark);}
-  .login-err{color:var(--red);font-size:13px;margin-top:8px;min-height:16px;}
-  .login-logo{width:64px;height:64px;border-radius:14px;background:var(--navy);color:var(--accent);
-    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;margin:0 auto 14px;}
+/* Layout */
+.app{display:flex;min-height:100%}
+.side{width:260px;background:linear-gradient(180deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:30;transition:transform .25s}
+.brand{display:flex;align-items:center;gap:12px;padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.12)}
+.brand .logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden;flex:none}
+.brand .logo img{width:100%;height:100%;object-fit:contain}
+.brand .logo span{font-weight:800;color:var(--navy2);font-size:18px}
+.brand h1{font-size:15px;font-weight:800;line-height:1.25}
+.brand small{display:block;font-weight:500;opacity:.7;font-size:11.5px;margin-top:2px}
+nav{padding:12px 10px;flex:1;overflow:auto}
+nav button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;background:transparent;color:rgba(255,255,255,.82);border-radius:10px;cursor:pointer;text-align:left;font-weight:600;margin-bottom:2px}
+nav button:hover{background:rgba(255,255,255,.09)}
+nav button.on{background:#fff;color:var(--navy2)}
+nav button svg{width:19px;height:19px;flex:none}
+nav .badge{margin-left:auto;background:#ff5252;color:#fff;border-radius:99px;font-size:11px;padding:1px 8px;font-weight:800}
+.mode{margin:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.1);font-size:12px;display:flex;gap:8px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;background:#5df2a4;flex:none}
+.dot.local{background:#ffc857}
+.main{margin-left:260px;flex:1;min-width:0}
+.top{display:none;align-items:center;gap:12px;background:var(--navy);color:#fff;padding:10px 14px;position:sticky;top:0;z-index:20}
+.top button{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer}
+.content{padding:26px 30px 60px;max-width:1280px}
+h2.pt{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.01em}
+.sub{color:var(--muted);margin:2px 0 18px}
 
-  /* ---------- LAYOUT ---------- */
-  .topbar{background:var(--navy);color:white;padding:14px 22px;display:flex;align-items:center;
-    justify-content:space-between;position:sticky;top:0;z-index:50;}
-  .topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;}
-  .topbar .brand span.small{display:block;font-weight:400;font-size:11px;color:#b9c6d4;}
-  .logout-btn{background:transparent;border:1px solid #4a6379;color:white;padding:7px 14px;
-    border-radius:8px;cursor:pointer;font-size:13px;}
-  .logout-btn:hover{background:#1a3d5c;}
+/* Alarm banner */
+.alarm{display:none;background:linear-gradient(90deg,#b71c1c,#e53935);color:#fff;padding:12px 30px;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:15}
+.alarm.show{display:flex}
+.alarm .bell{font-size:22px;animation:ring 1s infinite}
+.alarm b{font-weight:800}
+.alarm .txt{flex:1;min-width:200px}
+.alarm button{background:#fff;color:#b71c1c;border:0;border-radius:8px;padding:7px 12px;font-weight:700;cursor:pointer}
+.alarm button.ghost{background:rgba(255,255,255,.18);color:#fff}
+@keyframes ring{0%,100%{transform:rotate(0)}10%{transform:rotate(18deg)}20%{transform:rotate(-16deg)}30%{transform:rotate(12deg)}40%{transform:rotate(-8deg)}50%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){.alarm .bell{animation:none}}
 
-  .tabs{display:flex;gap:6px;background:var(--navy-light);padding:0 22px;overflow-x:auto;}
-  .tab-btn{background:transparent;border:none;color:#cbd8e4;padding:12px 16px;cursor:pointer;
-    font-size:13.5px;font-weight:600;border-bottom:3px solid transparent;white-space:nowrap;}
-  .tab-btn.active{color:white;border-bottom:3px solid var(--accent);}
-  .tab-btn:hover{color:white;}
+/* Cards, table */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 2px rgba(10,42,102,.05)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar .search{flex:1;min-width:180px;max-width:360px;position:relative}
+.toolbar input.q{width:100%;padding:10px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.toolbar input.q:focus{border-color:var(--blue2);outline:none}
+.btn{border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;display:inline-flex;gap:7px;align-items:center}
+.btn:hover{background:var(--navy2)}
+.btn.light{background:var(--sky2);color:var(--navy2)}
+.btn.light:hover{background:var(--sky3)}
+.btn.danger{background:var(--badbg);color:var(--bad)}
+.btn.danger:hover{background:#f9c9c9}
+.btn.sm{padding:6px 10px;font-size:12.5px;border-radius:8px}
+.btn.ok{background:var(--okbg);color:var(--ok)}
+.btn.ok:hover{background:#bfeed6}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th{background:var(--navy);color:#fff;text-align:left;padding:12px 14px;font-weight:700;font-size:13px;white-space:nowrap}
+th:first-child{border-top-left-radius:var(--r)}th:last-child{border-top-right-radius:var(--r)}
+td{padding:11px 14px;border-bottom:1px solid #e3eefa;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#f4f9ff}
+tr.late td{background:#fff5f5}
+.thumb{width:48px;height:48px;border-radius:9px;object-fit:cover;border:1px solid var(--line);cursor:zoom-in;background:var(--sky)}
+.nophoto{width:48px;height:48px;border-radius:9px;background:var(--sky);border:1px dashed var(--sky3);display:grid;place-items:center;color:var(--sky3);font-size:11px}
+.pill{display:inline-block;padding:3px 11px;border-radius:99px;font-weight:700;font-size:12px;white-space:nowrap}
+.pill.ok{background:var(--okbg);color:var(--ok)}
+.pill.bad{background:var(--badbg);color:var(--bad)}
+.pill.warn{background:var(--warnbg);color:var(--warn)}
+.pill.info{background:var(--sky2);color:var(--navy2)}
+.acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap}
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--navy);font-size:16px;margin-bottom:4px}
 
-  .content{padding:22px;max-width:1180px;margin:0 auto;}
+/* Dashboard */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.stat{padding:18px 20px;border-left:6px solid var(--blue2)}
+.stat .n{font-size:34px;font-weight:800;color:var(--navy);line-height:1.1}
+.stat .l{color:var(--muted);font-weight:600}
+.stat.red{border-left-color:#e53935}.stat.red .n{color:#c62828}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.card h3{padding:16px 18px 6px;font-size:16px;color:var(--navy)}
+.card .pad{padding:8px 18px 18px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #e8f1fb}
+.row:last-child{border-bottom:0}
 
-  /* ---------- DASHBOARD ---------- */
-  .grid-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px;}
-  .stat-card{background:var(--card);border-radius:14px;padding:18px;cursor:pointer;border:1px solid var(--border);
-    transition:.15s;position:relative;overflow:hidden;}
-  .stat-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.08);}
-  .stat-card .icon{font-size:26px;}
-  .stat-card .num{font-size:32px;font-weight:800;color:var(--navy);margin:6px 0 2px;}
-  .stat-card .label{font-size:13px;color:var(--muted);font-weight:600;}
-  .stat-card.danger .num{color:var(--red);}
-  .stat-card::after{content:"";position:absolute;right:-20px;top:-20px;width:70px;height:70px;
-    background:var(--accent);opacity:.08;border-radius:50%;}
-  .stat-card.danger::after{background:var(--red);}
+/* Modal */
+.ov{position:fixed;inset:0;background:rgba(6,25,62,.55);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+.ov.show{display:flex}
+.modal{background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.modal header{padding:18px 22px;background:linear-gradient(90deg,var(--navy),var(--blue));color:#fff;border-radius:18px 18px 0 0;font-weight:800;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.modal header button{background:none;border:0;color:#fff;font-size:24px;cursor:pointer;line-height:1}
+.modal form{padding:20px 22px 22px;display:grid;gap:14px}
+.fld label{display:block;font-weight:700;font-size:13px;color:var(--navy);margin-bottom:5px}
+.fld input,.fld select,.fld textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fbfdff}
+.fld input:focus,.fld select:focus{border-color:var(--blue2);outline:none;background:#fff}
+.fld .hint{font-size:12px;color:var(--muted);margin-top:4px}
+.imgbox{display:flex;gap:12px;align-items:center}
+.imgbox img{width:84px;height:84px;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:var(--sky)}
+.imgbox .ph{width:84px;height:84px;border-radius:12px;border:2px dashed var(--sky3);display:grid;place-items:center;color:var(--muted);font-size:12px;text-align:center;background:var(--sky)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mf{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+.lb{background:rgba(6,25,62,.85)}
+.lb img{max-width:94vw;max-height:90vh;border-radius:12px;background:#fff}
 
-  .section-title{font-size:16px;font-weight:700;color:var(--navy);margin:26px 0 12px;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:90;font-weight:600;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.err{background:#b71c1c}
+.setgrid{display:grid;gap:16px;max-width:760px}
+.setgrid .card{padding:20px}
+.setgrid h3{padding:0 0 12px}
+textarea.cfg{min-height:170px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.note{background:var(--sky);border:1px solid var(--sky2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--navy);margin-top:10px}
+.note ol{margin:6px 0 0 18px}
 
-  /* ---------- TOOLBAR / FORM ---------- */
-  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
-  .toolbar input[type=text]{padding:9px 12px;border:1px solid var(--border);border-radius:8px;width:240px;font-size:13.5px;}
-  .btn{background:var(--accent);color:white;border:none;padding:10px 18px;border-radius:8px;font-weight:600;
-    cursor:pointer;font-size:13.5px;}
-  .btn:hover{background:var(--accent-dark);}
-  .btn.secondary{background:var(--navy);}
-  .btn.secondary:hover{background:var(--navy-light);}
-  .btn.small{padding:6px 10px;font-size:12.5px;}
-  .btn.danger{background:var(--red);}
-
-  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;
-    box-shadow:0 1px 3px rgba(0,0,0,.06);}
-  th,td{padding:10px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--border);}
-  th{background:#f0f3f7;color:var(--navy);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
-  tr:hover td{background:#fafbfd;}
-  td img.thumb{width:42px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
-  .badge{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;}
-  .badge.baik{background:#dcfce7;color:var(--green);}
-  .badge.rusak{background:#fee2e2;color:var(--red);}
-  .badge.hilang{background:#fef3c7;color:var(--yellow);}
-  .empty-row td{text-align:center;color:var(--muted);padding:28px;}
-
-  /* ---------- MODAL ---------- */
-  .overlay{position:fixed;inset:0;background:rgba(15,41,66,.55);display:flex;align-items:center;
-    justify-content:center;z-index:200;padding:16px;}
-  .modal{background:var(--card);border-radius:14px;padding:24px;width:100%;max-width:520px;max-height:88vh;
-    overflow-y:auto;}
-  .modal h3{margin:0 0 16px;color:var(--navy);font-size:18px;}
-  .modal label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:10px 0 4px;}
-  .modal input, .modal select, .modal textarea{width:100%;padding:9px 11px;border:1px solid var(--border);
-    border-radius:8px;font-size:13.5px;font-family:inherit;}
-  .modal textarea{resize:vertical;min-height:60px;}
-  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
-  .modal-close{position:sticky;top:0;float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .img-preview{width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid var(--border);margin-top:8px;background:#f7f7f7;}
-
-  .detail-list{display:flex;flex-direction:column;gap:12px;}
-  .detail-item{border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
-  .detail-item .dt-name{font-weight:700;color:var(--navy);margin-bottom:4px;}
-  .detail-item .dt-row{font-size:13px;color:var(--muted);}
-
-  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:white;padding:12px 18px;
-    border-radius:10px;font-size:13.5px;z-index:400;box-shadow:0 8px 20px rgba(0,0,0,.2);}
-  .loading-note{color:var(--muted);font-size:13px;padding:14px;}
-  .config-warning{background:#fff3cd;border:1px solid #ffe08a;color:#8a6100;padding:14px 18px;border-radius:10px;
-    margin-bottom:16px;font-size:13.5px;}
-  @media(max-width:640px){
-    .row2{grid-template-columns:1fr;}
-    .content{padding:14px;}
-    .toolbar input[type=text]{width:100%;}
-  }
+.gc{width:40px;padding-right:0!important}
+.grip{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;color:var(--blue);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.grip:hover{background:var(--sky2)}
+.grip.off{opacity:.3;cursor:not-allowed}
+tr.dragging td{background:#d6ebff!important}
+tr.dragging td:first-child{box-shadow:inset 4px 0 0 var(--blue2)}
+body.dnd,body.dnd *{user-select:none;-webkit-user-select:none;cursor:grabbing!important}
+.toolbar select{padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+@media print{
+  .side,.top,.alarm,.toolbar,.acts,.scrim,.toast,.gc{display:none!important}
+  .main{margin:0}.content{padding:0}.card{box-shadow:none}
+  th:last-child,td:last-child{display:none}
+  th{background:#0a2a66!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff}
+}
+@media (max-width:860px){
+  .side{transform:translateX(-100%)}
+  .side.open{transform:none}
+  .main{margin-left:0}
+  .top{display:flex}
+  .content{padding:18px 14px 60px}
+  .alarm{padding:12px 14px}
+  .two{grid-template-columns:1fr}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25;display:none}
+  .scrim.show{display:block}
+}
 </style>
 </head>
 <body>
-<div id="app"></div>
 
-<script>
-/* =========================================================================
-   1. KONFIGURASI - GANTI SESUAI FIREBASE PROJECT ANDA
-========================================================================= */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyD4epFK-suAxoulhDTazyGJRIFiswZBzB0",
-  authDomain: "inventory-mmt-299bc.firebaseapp.com",
-  projectId: "inventory-mmt-299bc",
-  storageBucket: "inventory-mmt-299bc.firebasestorage.app",
-  messagingSenderId: "1080555186021",
-  appId: "1:1080555186021:web:30d5c18bd7a70f0c0ce38c",
-  measurementId: "G-8SET501LLB"
-};
-
-const APP_USERNAME = "MMT";
-const APP_PASSWORD = "1234";
-
-const CONFIG_IS_DEFAULT = FIREBASE_CONFIG.apiKey.startsWith("GANTI_DENGAN");
-
-let db = null, storage = null;
-if(!CONFIG_IS_DEFAULT){
-  firebase.initializeApp(FIREBASE_CONFIG);
-  db = firebase.firestore();
-  storage = firebase.storage();
-  try{ firebase.analytics(); }catch(e){ /* analytics opsional, abaikan jika gagal */ }
-}
-
-/* =========================================================================
-   2. STATE
-========================================================================= */
-const state = {
-  loggedIn: sessionStorage.getItem('simitra_logged_in') === '1',
-  tab: 'dashboard',
-  alat: [],       // Alat Kerja Teknisi
-  material: [],   // Stok Material WS
-  pinjam: [],     // Kartu Peminjaman Alat
-  freon: [],      // Peminjaman Freon
-  modal: null,    // {type, data}
-  toast: null
-};
-
-const KATEGORI_DASHBOARD = [
-  { key: 'tangga',   label: 'Tangga',          icon: '🪜', match: ['tangga'] },
-  { key: 'jetpump',  label: 'Mesin Jet Pump',  icon: '🚰', match: ['jet pump','jetpump'] },
-  { key: 'vacum',    label: 'Vacum',           icon: '🌀', match: ['vacum','vakum','vacuum'] },
-  { key: 'freon',    label: 'Tabung Freon',    icon: '🧯', match: ['freon'] },
-  { key: 'bor',      label: 'Bor',             icon: '🔩', match: ['bor'] },
-];
-
-function showToast(msg){
-  state.toast = msg;
-  render();
-  setTimeout(()=>{ state.toast=null; render(); }, 2200);
-}
-
-/* =========================================================================
-   3. FIRESTORE LISTENERS
-========================================================================= */
-function attachListeners(){
-  if(!db) return;
-  db.collection('alatTeknisi').orderBy('createdAt','desc').onSnapshot(snap=>{
-    state.alat = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    render();
-  });
-  db.collection('stokMaterial').orderBy('createdAt','desc').onSnapshot(snap=>{
-    state.material = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    render();
-  });
-  db.collection('peminjaman').orderBy('createdAt','desc').onSnapshot(snap=>{
-    state.pinjam = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    render();
-  });
-  db.collection('peminjamanFreon').orderBy('createdAt','desc').onSnapshot(snap=>{
-    state.freon = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    render();
-  });
-}
-
-async function compressImage(file, maxDim, quality){
-  maxDim = maxDim || 1280; quality = quality || 0.72;
-  if(!file || !file.type || !file.type.startsWith('image/')) return file;
-  try{
-    const bitmap = await createImageBitmap(file);
-    let { width, height } = bitmap;
-    if(width > maxDim || height > maxDim){
-      const ratio = Math.min(maxDim/width, maxDim/height);
-      width = Math.round(width*ratio); height = Math.round(height*ratio);
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = width; canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(bitmap, 0, 0, width, height);
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
-    if(!blob || blob.size >= file.size) return file; // jika hasil kompres tidak lebih kecil, pakai file asli
-    return new File([blob], (file.name||'foto').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
-  } catch(e){
-    return file; // kalau gagal kompres (browser lama dll), pakai file asli
-  }
-}
-
-async function uploadPhoto(file, folder, onProgress){
-  if(!file || !storage) return "";
-  const compressed = await compressImage(file);
-  const ref = storage.ref().child(folder + '/' + Date.now() + '_' + compressed.name);
-  return await new Promise((resolve, reject)=>{
-    const task = ref.put(compressed);
-    task.on('state_changed',
-      (snap)=>{
-        if(onProgress){
-          const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-          onProgress(pct);
-        }
-      },
-      (err)=> reject(err),
-      async ()=>{
-        try{ const url = await task.snapshot.ref.getDownloadURL(); resolve(url); }
-        catch(err){ reject(err); }
-      }
-    );
-  });
-}
-
-/* =========================================================================
-   4. LOGIN
-========================================================================= */
-function renderLogin(){
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    <div class="login-wrap">
-      <div class="login-box">
-        <div class="login-logo">MMT</div>
-        <h1>Inventory Simitra</h1>
-        <div class="sub">CV Mitra Multi Teknik</div>
-        <input id="li-user" type="text" placeholder="Username" autocomplete="username" />
-        <input id="li-pass" type="password" placeholder="Password" autocomplete="current-password" />
-        <button id="li-btn">Masuk</button>
-        <div class="login-err" id="li-err"></div>
-      </div>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="logo" id="brandLogo"><span>MT</span></div>
+      <h1 id="brandName">Inventory Mitra Multi Teknik<small>Alat kerja &amp; part</small></h1>
     </div>
-  `;
-  const doLogin = () => {
-    const u = document.getElementById('li-user').value.trim();
-    const p = document.getElementById('li-pass').value.trim();
-    if(u === APP_USERNAME && p === APP_PASSWORD){
-      sessionStorage.setItem('simitra_logged_in','1');
-      state.loggedIn = true;
-      render();
-    } else {
-      document.getElementById('li-err').textContent = 'Username atau password salah.';
-    }
-  };
-  document.getElementById('li-btn').onclick = doLogin;
-  document.getElementById('li-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-}
+    <nav id="nav"></nav>
+    <div class="mode"><span class="dot" id="modeDot"></span><span id="modeTxt">Memuat…</span></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-/* =========================================================================
-   5. HELPERS
-========================================================================= */
-function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function badgeClass(k){ return k==='Baik'?'baik': k==='Rusak'?'rusak':'hilang'; }
-function matchesKategori(namaAlat, matches){
-  const n = (namaAlat||'').toLowerCase();
-  return matches.some(m => n.includes(m));
-}
-function countKategori(key){
-  const kat = KATEGORI_DASHBOARD.find(k=>k.key===key);
-  return state.alat.filter(a=>matchesKategori(a.namaAlat, kat.match))
-    .reduce((sum,a)=> sum + (parseInt(a.jumlah)||0), 0);
-}
-function itemsKategori(key){
-  const kat = KATEGORI_DASHBOARD.find(k=>k.key===key);
-  return state.alat.filter(a=>matchesKategori(a.namaAlat, kat.match));
-}
-function rusakHilangItems(){
-  return state.alat.filter(a=> a.kondisi==='Rusak' || a.kondisi==='Hilang');
-}
-
-/* =========================================================================
-   6. MAIN RENDER
-========================================================================= */
-function render(){
-  if(!state.loggedIn){ renderLogin(); return; }
-  const app = document.getElementById('app');
-
-  const tabs = [
-    {key:'dashboard', label:'Dashboard'},
-    {key:'alat', label:'Alat Kerja Teknisi'},
-    {key:'material', label:'Stok Material WS'},
-    {key:'pinjam', label:'Kartu Peminjaman Alat'},
-    {key:'freon', label:'Peminjaman Freon'},
-  ];
-
-  app.innerHTML = `
-    <div class="topbar">
-      <div class="brand">📦 Inventory Simitra <span class="small">CV Mitra Multi Teknik</span></div>
-      <button class="logout-btn" id="logout-btn">Keluar</button>
-    </div>
-    <div class="tabs">
-      ${tabs.map(t=>`<button class="tab-btn ${state.tab===t.key?'active':''}" data-tab="${t.key}">${t.label}</button>`).join('')}
+  <div class="main">
+    <div class="top"><button id="burger" aria-label="Menu">☰</button><b id="topName">Inventory</b></div>
+    <div class="alarm" id="alarm" role="alert">
+      <span class="bell">🔔</span>
+      <div class="txt" id="alarmTxt"></div>
+      <button id="alarmView">Lihat</button>
+      <button class="ghost" id="alarmMute">Diamkan 1 jam</button>
     </div>
     <div class="content" id="content"></div>
-    ${state.toast? `<div class="toast">${esc(state.toast)}</div>`:''}
-    ${state.modal? renderModal(): ''}
-  `;
+  </div>
+</div>
 
-  document.getElementById('logout-btn').onclick = ()=>{
-    sessionStorage.removeItem('simitra_logged_in');
-    state.loggedIn = false;
-    render();
-  };
-  document.querySelectorAll('.tab-btn').forEach(b=>{
-    b.onclick = ()=>{ state.tab = b.dataset.tab; render(); };
+<div class="ov" id="ov"><div class="modal" id="modal"></div></div>
+<div class="ov lb" id="lb"><img id="lbImg" alt="Foto"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   KONFIGURASI FIREBASE
+   Opsi 1: isi langsung di bawah ini.
+   Opsi 2: biarkan kosong, lalu tempel di menu Pengaturan > Koneksi Firebase.
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDmlXUjYaSYb4WL1rWBdSUjLezIqR7slf4",
+  authDomain: "inventory-mmt.firebaseapp.com",
+  projectId: "inventory-mmt",
+  storageBucket: "inventory-mmt.firebasestorage.app",
+  messagingSenderId: "984802344383",
+  appId: "1:984802344383:web:0a5afb7f6515d23f7e750a",
+  measurementId: "G-HXPL3R2BPK"
+};
+
+/* ---------- Util ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const todayStr = (d=new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays = (str, n) => { const d = new Date(str+'T00:00:00'); d.setDate(d.getDate()+n); return todayStr(d); };
+const fmtDate = s => s ? new Date(s+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+let toastT;
+function toast(msg, err){ const t=$('#toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); clearTimeout(toastT); toastT=setTimeout(()=>t.className='toast',3200); }
+
+function compressImage(file, max=720, type='image/jpeg', q=0.72){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onerror=()=>rej(new Error('Gagal membaca file'));
+    fr.onload=()=>{ const im=new Image(); im.onerror=()=>rej(new Error('File bukan gambar'));
+      im.onload=()=>{ const k=Math.min(1,max/Math.max(im.width,im.height)); const c=document.createElement('canvas');
+        c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); const x=c.getContext('2d');
+        if(type==='image/jpeg'){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);}
+        x.drawImage(im,0,0,c.width,c.height); res(c.toDataURL(type,q)); };
+      im.src=fr.result; };
+    fr.readAsDataURL(file);
   });
-
-  const content = document.getElementById('content');
-  if(CONFIG_IS_DEFAULT){
-    content.innerHTML = `<div class="config-warning">
-      ⚠️ Firebase belum dikonfigurasi. Buka file ini di editor teks, cari <b>FIREBASE_CONFIG</b>
-      di bagian atas script, dan isi dengan config project Firebase Anda sendiri
-      (lihat instruksi lengkap di komentar awal file / panduan yang diberikan).
-      Untuk sementara data hanya tampil kosong dan tidak akan tersimpan.
-    </div>` + content.innerHTML;
-  }
-
-  if(state.tab==='dashboard') renderDashboard();
-  else if(state.tab==='alat') renderAlatTab();
-  else if(state.tab==='material') renderMaterialTab();
-  else if(state.tab==='pinjam') renderPinjamTab();
-  else if(state.tab==='freon') renderFreonTab();
-
-  bindModalEvents();
 }
 
-/* =========================================================================
-   7. DASHBOARD
-========================================================================= */
+/* ---------- Lapisan data: Firebase Firestore atau Mode Lokal ---------- */
+const Local = {
+  L:{}, read(c){ try{return JSON.parse(localStorage.getItem('mmt_'+c)||'[]')}catch(e){return[]} },
+  write(c,a){ try{localStorage.setItem('mmt_'+c,JSON.stringify(a))}catch(e){toast('Penyimpanan lokal penuh. Gunakan Firebase.',true)} (this.L[c]||[]).forEach(f=>f(a)); },
+  sub(c,cb){ (this.L[c]=this.L[c]||[]).push(cb); cb(this.read(c)); },
+  async add(c,d){ const a=this.read(c); a.push({id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),...d}); this.write(c,a); },
+  async update(c,id,d){ this.write(c,this.read(c).map(x=>x.id===id?{...x,...d}:x)); },
+  async set(c,id,d){ const a=this.read(c); const i=a.findIndex(x=>x.id===id); if(i<0)a.push({id,...d}); else a[i]={...a[i],...d}; this.write(c,a); },
+  async remove(c,id){ this.write(c,this.read(c).filter(x=>x.id!==id)); }
+};
+const Fire = {
+  init(cfg){ if(!firebase.apps.length) firebase.initializeApp(cfg); this.db=firebase.firestore(); },
+  sub(c,cb){ this.db.collection(c).onSnapshot(s=>cb(s.docs.map(d=>({id:d.id,...d.data()}))), e=>toast('Firebase: '+e.message,true)); },
+  add(c,d){ return this.db.collection(c).add(d); },
+  update(c,id,d){ return this.db.collection(c).doc(id).update(d); },
+  set(c,id,d){ return this.db.collection(c).doc(id).set(d,{merge:true}); },
+  remove(c,id){ return this.db.collection(c).doc(id).delete(); }
+};
+function getFbConfig(){
+  if(FIREBASE_CONFIG && FIREBASE_CONFIG.projectId) return FIREBASE_CONFIG;
+  try{ const c=JSON.parse(localStorage.getItem('mmt_fbconfig')||'null'); if(c&&c.projectId) return c; }catch(e){}
+  return null;
+}
+let DB = Local, MODE = 'local';
+(function(){
+  const cfg=getFbConfig();
+  if(cfg && typeof firebase!=='undefined'){
+    try{ Fire.init(cfg); DB=Fire; MODE='firebase'; }catch(e){ console.error(e); }
+  }
+})();
+
+/* ---------- State ---------- */
+const S = { technicians:[], tools:[], loans:[], techStock:[], cylinders:[], stockLog:[], settings:{} };
+let page = 'dashboard', query = '', loanFilter = 'all';
+const DEF = { namaApp:'Inventory Mitra Multi Teknik', logo:'', alarmDays:0, jamBatas:'17:00' };
+const cfgApp = () => ({...DEF, ...(S.settings||{})});
+
+/* ---------- Definisi modul ---------- */
+const KONDISI3 = ['Baik','Rusak','Hilang'];
+const KONDISI2 = ['Baik','Rusak'];
+const JABATAN = ['Teknisi','Helper','Senior Teknisi','Supervisor','Admin Gudang'];
+const byId = (arr,id) => arr.find(x=>x.id===id);
+const techName = id => byId(S.technicians,id)?.nama || '(teknisi dihapus)';
+const toolName = id => { const t=byId(S.tools,id); return t ? t.nama+(t.nomor?' · '+t.nomor:'') : '(alat dihapus)'; };
+const kondPill = k => `<span class="pill ${k==='Baik'?'ok':k==='Rusak'?'warn':'bad'}">${esc(k)}</span>`;
+const photo = src => src ? `<img class="thumb" src="${src}" data-zoom alt="Foto">` : `<div class="nophoto">no foto</div>`;
+const activeLoanQty = toolId => S.loans.filter(l=>l.alatId===toolId && !l.tanggalKembali).reduce((a,l)=>a+(+l.jumlah||0),0);
+const availQty = t => (+t.jumlah||0) - activeLoanQty(t.id);
+const isLow = t => (+t.minStok||0)>0 && availQty(t) <= +t.minStok;
+const byOrder = (a,b) => ((a.urutan??-1)-(b.urutan??-1)) || ((a.createdAt||0)-(b.createdAt||0));
+const sorted = k => [...S[k]].sort(byOrder);
+
+const MOD = {
+  technicians:{ title:'Data Teknisi', sub:'Daftar teknisi dan helper Mitra Multi Teknik.', add:'Tambah teknisi', icon:'users',
+    fields:[
+      {k:'nama',l:'Nama Teknisi / Helper',t:'text',req:1},
+      {k:'jabatan',l:'Jabatan',t:'select',opts:JABATAN,req:1}
+    ],
+    cols:[ ['Nama',r=>`<b>${esc(r.nama)}</b>`], ['Jabatan',r=>`<span class="pill info">${esc(r.jabatan)}</span>`] ],
+    text:r=>[r.nama,r.jabatan], sortable:true },
+  tools:{ title:'Inventaris Alat & Part', sub:'Seluruh alat dan part yang ada di gudang.', add:'Tambah alat / part', icon:'box',
+    fields:[
+      {k:'nama',l:'Nama Alat / Part',t:'text',req:1},
+      {k:'nomor',l:'Nomor Alat',t:'text',req:1,half:1},
+      {k:'kategori',l:'Kategori',t:'select',opts:['Alat','Part','Bahan habis pakai'],req:1,half:1},
+      {k:'jumlah',l:'Jumlah di gudang',t:'number',req:1,def:1,min:0,half:1},
+      {k:'satuan',l:'Satuan',t:'text',def:'pcs',half:1},
+      {k:'lokasi',l:'Lokasi / Rak',t:'text',half:1},
+      {k:'minStok',l:'Stok minimum',t:'number',def:0,min:0,half:1,hint:'0 = tanpa peringatan'},
+      {k:'kondisi',l:'Kondisi',t:'select',opts:KONDISI3,req:1},
+      {k:'foto',l:'Foto Alat',t:'image'}
+    ],
+    cols:[ ['Foto',r=>photo(r.foto)], ['Nama Alat',r=>`<b>${esc(r.nama)}</b>`], ['Nomor',r=>esc(r.nomor)],
+      ['Kategori',r=>r.kategori?`<span class="pill info">${esc(r.kategori)}</span>`:'—'],
+      ['Lokasi',r=>esc(r.lokasi||'—')],
+      ['Jumlah',r=>`${esc(r.jumlah)} ${esc(r.satuan||'')}${activeLoanQty(r.id)?` <small style="color:var(--muted)">(${activeLoanQty(r.id)} dipinjam)</small>`:''}${isLow(r)?' <span class="pill bad">Stok menipis</span>':''}`],
+      ['Kondisi',r=>kondPill(r.kondisi)] ],
+    text:r=>[r.nama,r.nomor,r.kondisi,r.kategori,r.lokasi], sortable:true },
+  loans:{ title:'Pengambilan Alat', sub:'Catat alat yang diambil teknisi dari gudang dan kapan dikembalikan.', add:'Catat pengambilan', icon:'out',
+    fields:[
+      {k:'tanggal',l:'Tanggal Pengambilan',t:'date',req:1,def:()=>todayStr()},
+      {k:'teknisiId',l:'Nama Teknisi',t:'ref-tech',req:1},
+      {k:'alatId',l:'Jenis Alat',t:'ref-tool',req:1},
+      {k:'jumlah',l:'Jumlah',t:'number',req:1,def:1,min:1},
+      {k:'jatuhTempo',l:'Batas Pengembalian',t:'date',req:1,def:()=>addDays(todayStr(),+cfgApp().alarmDays||0),hint:'Alarm berbunyi bila alat belum kembali setelah batas ini.'},
+      {k:'foto',l:'Foto',t:'image'},
+      {k:'tanggalKembali',l:'Tanggal Dikembalikan',t:'date',hint:'Kosongkan jika alat belum kembali.'}
+    ],
+    cols:[ ['Tanggal',r=>fmtDate(r.tanggal)], ['Teknisi',r=>`<b>${esc(techName(r.teknisiId))}</b>`], ['Alat',r=>esc(toolName(r.alatId))],
+      ['Jml',r=>esc(r.jumlah)], ['Foto',r=>photo(r.foto)], ['Batas',r=>fmtDate(r.jatuhTempo)],
+      ['Dikembalikan',r=>fmtDate(r.tanggalKembali)], ['Status',r=>loanPill(r)] ],
+    extraAct:r=> r.tanggalKembali ? '' : `<button class="btn sm ok" data-return="${r.id}">Kembalikan</button>`,
+    text:r=>[techName(r.teknisiId),toolName(r.alatId),loanStatus(r).label],
+    rowClass:r=> loanStatus(r).key==='late' ? 'late' : '' },
+  techStock:{ title:'Stok Alat Teknisi', sub:'Alat yang dipegang masing-masing teknisi.', add:'Tambah stok teknisi', icon:'toolbox',
+    fields:[
+      {k:'teknisiId',l:'Nama Teknisi',t:'ref-tech',req:1},
+      {k:'namaAlat',l:'Nama Alat',t:'text',req:1,list:'toolNames'},
+      {k:'jumlah',l:'Jumlah',t:'number',req:1,def:1,min:0},
+      {k:'kondisi',l:'Kondisi',t:'select',opts:KONDISI2,req:1}
+    ],
+    cols:[ ['Teknisi',r=>`<b>${esc(techName(r.teknisiId))}</b>`], ['Nama Alat',r=>esc(r.namaAlat)], ['Jumlah',r=>esc(r.jumlah)], ['Kondisi',r=>kondPill(r.kondisi)] ],
+    text:r=>[techName(r.teknisiId),r.namaAlat,r.kondisi], sortable:true },
+  cylinders:{ title:'Stok Tabung', sub:'Data tabung beserta pemiliknya.', add:'Tambah tabung', icon:'cyl',
+    fields:[
+      {k:'nama',l:'Nama Tabung',t:'text',req:1},
+      {k:'nomor',l:'Nomor Tabung',t:'text',req:1},
+      {k:'pemilik',l:'Pemilik',t:'text',req:1}
+    ],
+    cols:[ ['Nama Tabung',r=>`<b>${esc(r.nama)}</b>`], ['Nomor Tabung',r=>esc(r.nomor)], ['Pemilik',r=>esc(r.pemilik)] ],
+    text:r=>[r.nama,r.nomor,r.pemilik], sortable:true },
+  stockLog:{ title:'Stok Masuk / Keluar', sub:'Catat part atau alat yang masuk dan keluar gudang. Jumlah di inventaris ikut berubah otomatis.', add:'Catat mutasi stok', icon:'swap', noEdit:true,
+    fields:[
+      {k:'tanggal',l:'Tanggal',t:'date',req:1,def:()=>todayStr(),half:1},
+      {k:'tipe',l:'Jenis',t:'select',opts:['Masuk','Keluar'],req:1,half:1},
+      {k:'alatId',l:'Alat / Part',t:'ref-tool-all',req:1},
+      {k:'jumlah',l:'Jumlah',t:'number',req:1,def:1,min:1},
+      {k:'keterangan',l:'Keterangan (opsional)',t:'text'}
+    ],
+    cols:[ ['Tanggal',r=>fmtDate(r.tanggal)], ['Alat / Part',r=>`<b>${esc(byId(S.tools,r.alatId)?toolName(r.alatId):(r.namaAlat||'(alat dihapus)'))}</b>`],
+      ['Jenis',r=>`<span class="pill ${r.tipe==='Masuk'?'ok':'warn'}">${esc(r.tipe)}</span>`], ['Jumlah',r=>esc(r.jumlah)], ['Keterangan',r=>esc(r.keterangan||'—')] ],
+    text:r=>[r.namaAlat,r.tipe,r.keterangan] }
+};
+
+/* ---------- Status pengembalian & alarm ---------- */
+function dueDate(l){ const j=cfgApp().jamBatas||'17:00'; return new Date((l.jatuhTempo||l.tanggal)+'T'+j+':00'); }
+function loanStatus(l){
+  if(l.tanggalKembali) return {key:'back',label:'Sudah kembali',cls:'ok'};
+  if(new Date() >= dueDate(l)) return {key:'late',label:'Belum kembali!',cls:'bad'};
+  return {key:'out',label:'Dipinjam',cls:'warn'};
+}
+const loanPill = l => { const s=loanStatus(l); return `<span class="pill ${s.cls}">${s.label}</span>`; };
+const overdue = () => S.loans.filter(l=>loanStatus(l).key==='late');
+
+let audioCtx=null, muteUntil=+localStorage.getItem('mmt_mute')||0, lastBeep=0;
+function beep(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    [0,.28,.56].forEach(t=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='square'; o.frequency.value=t===.28?660:880;
+      g.gain.setValueAtTime(.0001,audioCtx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.18,audioCtx.currentTime+t+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+t+.22);
+      o.connect(g); g.connect(audioCtx.destination); o.start(audioCtx.currentTime+t); o.stop(audioCtx.currentTime+t+.25);
+    });
+  }catch(e){}
+}
+let titleBase=document.title, blink=false;
+function checkAlarm(){
+  const od=overdue(), b=$('#alarm');
+  const badge=$('#navBadge'); if(badge){ badge.textContent=od.length; badge.style.display=od.length?'':'none'; }
+  if(!od.length){ b.classList.remove('show'); document.title=titleBase; return; }
+  const names=[...new Set(od.map(l=>techName(l.teknisiId)))];
+  $('#alarmTxt').innerHTML=`<b>${od.length} pengambilan alat belum kembali</b> — ${esc(names.slice(0,3).join(', '))}${names.length>3?' dan lainnya':''}`;
+  b.classList.add('show');
+  blink=!blink; document.title=(blink?'🔔 ':'')+`(${od.length}) ${titleBase}`;
+  const now=Date.now();
+  if(now>muteUntil && now-lastBeep>60000){ lastBeep=now; beep();
+    if('Notification' in window && Notification.permission==='granted'){ try{ new Notification('Alat belum kembali',{body:`${od.length} pengambilan melewati batas waktu.`}); }catch(e){} } }
+}
+setInterval(checkAlarm,5000);
+$('#alarmView').onclick=()=>{ loanFilter='late'; go('loans'); };
+$('#alarmMute').onclick=()=>{ muteUntil=Date.now()+3600e3; localStorage.setItem('mmt_mute',muteUntil); toast('Suara alarm dimatikan selama 1 jam'); };
+document.addEventListener('click',()=>{ if(!audioCtx){ try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); },{once:true});
+
+/* ---------- Ikon ---------- */
+const IC = {
+  dash:'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  box:'<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+  toolbox:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 13h20"/>',
+  cyl:'<path d="M9 2h6v3a4 4 0 0 1 3 4v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9a4 4 0 0 1 3-4z"/>',
+  swap:'<path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/>',
+  set:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
+};
+const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
+
+/* ---------- Navigasi ---------- */
+const NAV = [['dashboard','Dashboard','dash'],['technicians',MOD.technicians.title,'users'],['tools','Inventaris Gudang','box'],['loans','Pengambilan Alat','out'],['stockLog','Stok Masuk / Keluar','swap'],['techStock','Stok Alat Teknisi','toolbox'],['cylinders','Stok Tabung','cyl'],['settings','Pengaturan','set']];
+function renderNav(){
+  $('#nav').innerHTML = NAV.map(([k,l,i])=>`<button data-go="${k}" class="${page===k?'on':''}">${svg(i)}<span>${l}</span>${k==='loans'?'<span class="badge" id="navBadge" style="display:none">0</span>':''}</button>`).join('');
+  checkAlarm();
+}
+function go(p){ page=p; query=''; $('#side').classList.remove('open'); $('#scrim').classList.remove('show'); renderNav(); renderPage(); window.scrollTo(0,0); }
+$('#nav').addEventListener('click',e=>{ const b=e.target.closest('[data-go]'); if(b){ loanFilter='all'; go(b.dataset.go); } });
+$('#burger').onclick=()=>{ $('#side').classList.toggle('open'); $('#scrim').classList.toggle('show'); };
+$('#scrim').onclick=()=>{ $('#side').classList.remove('open'); $('#scrim').classList.remove('show'); };
+
+/* ---------- Branding ---------- */
+function applyBrand(){
+  const c=cfgApp();
+  $('#brandName').innerHTML=`${esc(c.namaApp)}<small>${MODE==='firebase'?'Tersambung Firebase':'Mode lokal (demo)'}</small>`;
+  $('#topName').textContent=c.namaApp;
+  titleBase=c.namaApp; if(!$('#alarm').classList.contains('show')) document.title=c.namaApp;
+  $('#brandLogo').innerHTML = c.logo ? `<img src="${c.logo}" alt="Logo">` : `<span>${esc(c.namaApp.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'MT')}</span>`;
+  $('#modeDot').className='dot'+(MODE==='firebase'?'':' local');
+  $('#modeTxt').textContent = MODE==='firebase' ? 'Firebase · data tersinkron' : 'Mode lokal · belum ke Firebase';
+}
+
+/* ---------- Render halaman ---------- */
+function renderPage(){
+  if(page==='dashboard') return renderDashboard();
+  if(page==='settings') return renderSettings();
+  const m=MOD[page];
+  $('#content').innerHTML=`
+    <h2 class="pt">${m.title}</h2><p class="sub">${m.sub}</p>
+    <div class="toolbar">
+      <div class="search"><input class="q" id="q" type="search" placeholder="Cari…" value="${esc(query)}"></div>
+      <button class="btn" id="addBtn">+ ${m.add}</button>
+      ${page==='loans'?`<select id="lf" aria-label="Filter status"><option value="all">Semua status</option><option value="late">Belum kembali (lewat batas)</option><option value="out">Masih dipinjam</option><option value="back">Sudah kembali</option></select>`:''}
+      <button class="btn light" id="csvBtn">Unduh CSV</button>
+      <button class="btn light" id="prBtn">Cetak</button>
+    </div>
+    <div class="card"><div class="tw" id="tbl"></div></div>
+    <datalist id="toolNames">${S.tools.map(t=>`<option value="${esc(t.nama)}">`).join('')}</datalist>`;
+  $('#q').oninput=e=>{ query=e.target.value; renderTable(); };
+  $('#addBtn').onclick=()=>openForm(page);
+  $('#csvBtn').onclick=()=>exportCsv(page);
+  $('#prBtn').onclick=()=>window.print();
+  const lf=$('#lf'); if(lf){ lf.value=loanFilter; lf.onchange=e=>{ loanFilter=e.target.value; renderTable(); }; }
+  renderTable();
+}
+function rowsOf(key){
+  const m=MOD[key]; let rows=[...S[key]].sort(m.sortable?byOrder:(a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(key==='loans'&&loanFilter!=='all') rows=rows.filter(l=>loanStatus(l).key===loanFilter);
+  if(query.trim()){ const q=query.toLowerCase(); rows=rows.filter(r=>m.text(r).join(' ').toLowerCase().includes(q)); }
+  return rows;
+}
+function renderTable(){
+  const el=$('#tbl'); if(!el) return; const m=MOD[page], rows=rowsOf(page);
+  if(!rows.length){ el.innerHTML=`<div class="empty"><b>${query?'Tidak ada hasil':'Belum ada data'}</b>${query?'Coba kata kunci lain.':'Klik “'+m.add+'” untuk mulai mengisi.'}</div>`; return; }
+  const dnd=!!m.sortable, off=!!query.trim();
+  el.innerHTML=`<table><thead><tr>${dnd?'<th class="gc"></th>':''}${m.cols.map(c=>`<th>${c[0]}</th>`).join('')}<th></th></tr></thead><tbody>${
+    rows.map(r=>`<tr data-id="${r.id}" class="${m.rowClass?m.rowClass(r):''}">${dnd?gripCell(off):''}${m.cols.map(c=>`<td>${c[1](r)}</td>`).join('')}
+      <td><div class="acts">${m.extraAct?m.extraAct(r):''}${m.noEdit?'':`<button class="btn sm light" data-edit="${r.id}">Ubah</button>`}<button class="btn sm danger" data-del="${r.id}">Hapus</button></div></td></tr>`).join('')}</tbody></table>`;
+}
 function renderDashboard(){
-  const content = document.getElementById('content');
-  const rusakHilang = rusakHilangItems();
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <div class="section-title">Ringkasan Alat</div>
-    <div class="grid-stats" id="stat-grid"></div>
-    <div class="section-title">Perhatian</div>
-    <div class="grid-stats">
-      <div class="stat-card danger" data-kind="rusak">
-        <div class="icon">⚠️</div>
-        <div class="num">${rusakHilang.length}</div>
-        <div class="label">Alat Rusak / Hilang</div>
-      </div>
-      <div class="stat-card" data-kind="totalalat">
-        <div class="icon">🧰</div>
-        <div class="num">${state.alat.length}</div>
-        <div class="label">Total Data Alat Teknisi</div>
-      </div>
-      <div class="stat-card" data-kind="totalmaterial">
-        <div class="icon">📦</div>
-        <div class="num">${state.material.length}</div>
-        <div class="label">Total Jenis Material WS</div>
-      </div>
-      <div class="stat-card" data-kind="totalpinjam">
-        <div class="icon">🔁</div>
-        <div class="num">${state.pinjam.length}</div>
-        <div class="label">Total Peminjaman Tercatat</div>
-      </div>
-      <div class="stat-card" data-kind="totalfreon">
-        <div class="icon">🧪</div>
-        <div class="num">${state.freon.length}</div>
-        <div class="label">Total Peminjaman Freon</div>
-      </div>
+  const od=overdue(), out=S.loans.filter(l=>!l.tanggalKembali);
+  const low=S.tools.filter(isLow); const cm={}; S.loans.forEach(l=>{cm[l.alatId]=(cm[l.alatId]||0)+1;});
+  const topList=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const cnt=k=>S.tools.filter(t=>t.kondisi===k).reduce((a,t)=>a+(+t.jumlah||0),0);
+  $('#content').innerHTML=`
+    <h2 class="pt">Dashboard</h2><p class="sub">Ringkasan inventaris dan status pengembalian alat.</p>
+    <div class="stats">
+      <div class="card stat"><div class="n">${S.technicians.length}</div><div class="l">Teknisi &amp; helper</div></div>
+      <div class="card stat"><div class="n">${S.tools.length}</div><div class="l">Jenis alat &amp; part</div></div>
+      <div class="card stat"><div class="n">${out.length}</div><div class="l">Alat sedang dipinjam</div></div>
+      <div class="card stat ${od.length?'red':''}"><div class="n">${od.length}</div><div class="l">Belum kembali (lewat batas)</div></div>
+      <div class="card stat"><div class="n">${S.cylinders.length}</div><div class="l">Tabung tercatat</div></div>
+      <div class="card stat ${low.length?'red':''}"><div class="n">${low.length}</div><div class="l">Stok menipis</div></div>
     </div>
-  `;
-  content.appendChild(wrap);
-
-  const grid = document.getElementById('stat-grid');
-  KATEGORI_DASHBOARD.forEach(k=>{
-    const card = document.createElement('div');
-    card.className = 'stat-card';
-    card.innerHTML = `<div class="icon">${k.icon}</div><div class="num">${countKategori(k.key)}</div><div class="label">${esc(k.label)}</div>`;
-    card.onclick = ()=>{ state.modal = {type:'kategori-detail', key:k.key}; render(); };
-    grid.appendChild(card);
-  });
-
-  wrap.querySelectorAll('[data-kind="rusak"]').forEach(el=>{
-    el.onclick = ()=>{ state.modal = {type:'rusak-detail'}; render(); };
-  });
+    <div class="grid2">
+      <div class="card"><h3>Alat belum kembali</h3><div class="pad">${
+        out.length ? out.sort((a,b)=>dueDate(a)-dueDate(b)).slice(0,8).map(l=>`<div class="row"><div><b>${esc(techName(l.teknisiId))}</b><br><small style="color:var(--muted)">${esc(toolName(l.alatId))} × ${esc(l.jumlah)} · batas ${fmtDate(l.jatuhTempo)}</small></div>${loanPill(l)}</div>`).join('')
+        : '<div class="empty" style="padding:24px"><b>Semua alat sudah kembali</b>Tidak ada pengambilan yang tertunda.</div>'}</div></div>
+      <div class="card"><h3>Kondisi alat di gudang</h3><div class="pad">
+        <div class="row"><span>Baik</span><span class="pill ok">${cnt('Baik')}</span></div>
+        <div class="row"><span>Rusak</span><span class="pill warn">${cnt('Rusak')}</span></div>
+        <div class="row"><span>Hilang</span><span class="pill bad">${cnt('Hilang')}</span></div>
+      </div></div>
+      <div class="card"><h3>Stok menipis</h3><div class="pad">${low.length?low.map(t=>`<div class="row"><div><b>${esc(t.nama)}</b><br><small style="color:var(--muted)">${esc(t.nomor)} · minimum ${esc(t.minStok)}</small></div><span class="pill bad">sisa ${availQty(t)}</span></div>`).join(''):'<div class="empty" style="padding:24px"><b>Stok aman</b>Tidak ada item di bawah batas minimum.</div>'}</div></div>
+      <div class="card"><h3>Alat paling sering diambil</h3><div class="pad">${topList.length?topList.map(([id,n])=>`<div class="row"><span>${esc(toolName(id))}</span><span class="pill info">${n}×</span></div>`).join(''):'<div class="empty" style="padding:24px"><b>Belum ada data</b>Muncul setelah ada pengambilan alat.</div>'}
+      </div></div>
+    </div>`;
 }
 
-/* =========================================================================
-   8. TAB: ALAT KERJA TEKNISI
-========================================================================= */
-function renderAlatTab(){
-  const content = document.getElementById('content');
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <div class="toolbar">
-      <input type="text" id="search-alat" placeholder="Cari nama alat / teknisi..." />
-      <button class="btn" id="add-alat-btn">+ Tambah Alat</button>
-    </div>
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>Foto</th><th>Nama Teknisi</th><th>Nama Alat</th><th>Merek</th><th>Jumlah</th>
-        <th>Kondisi</th><th>No. Alat</th><th>Tgl Masuk</th><th>Penanggung Jawab</th><th>Jabatan</th><th></th>
-      </tr></thead>
-      <tbody id="alat-tbody"></tbody>
-    </table>
-    </div>
-  `;
-  content.appendChild(wrap);
-
-  const tbody = wrap.querySelector('#alat-tbody');
-  function draw(filter){
-    const f = (filter||'').toLowerCase();
-    const rows = state.alat.filter(a =>
-      !f || (a.namaAlat||'').toLowerCase().includes(f) || (a.namaTeknisi||'').toLowerCase().includes(f));
-    tbody.innerHTML = rows.length ? rows.map(a=>`
-      <tr>
-        <td>${a.fotoURL? `<img class="thumb" src="${a.fotoURL}">` : '-'}</td>
-        <td>${esc(a.namaTeknisi)}</td>
-        <td>${esc(a.namaAlat)}</td>
-        <td>${esc(a.merek)}</td>
-        <td>${esc(a.jumlah)}</td>
-        <td><span class="badge ${badgeClass(a.kondisi)}">${esc(a.kondisi)}</span></td>
-        <td>${esc(a.nomorAlat)}</td>
-        <td>${esc(a.tanggalMasuk)}</td>
-        <td>${esc(a.pemilik)}</td>
-        <td>${esc(a.jabatan)}</td>
-        <td>
-          <button class="btn small secondary" data-edit="${a.id}">Edit</button>
-          <button class="btn small danger" data-del="${a.id}">Hapus</button>
-        </td>
-      </tr>`).join('') : `<tr class="empty-row"><td colspan="11">Belum ada data alat.</td></tr>`;
-
-    tbody.querySelectorAll('[data-edit]').forEach(b=>{
-      b.onclick = ()=>{ state.modal={type:'alat-form', data: state.alat.find(x=>x.id===b.dataset.edit)}; render(); };
-    });
-    tbody.querySelectorAll('[data-del]').forEach(b=>{
-      b.onclick = ()=>{ if(confirm('Hapus data alat ini?')) db.collection('alatTeknisi').doc(b.dataset.del).delete().then(()=>showToast('Data dihapus')); };
-    });
+/* ---------- Form tambah / ubah ---------- */
+const imgState={};
+function fieldHTML(f,val){
+  const id='f_'+f.k, req=f.req?'required':'';
+  let inner='';
+  if(f.t==='text') inner=`<input id="${id}" name="${f.k}" type="text" value="${esc(val)}" ${req} ${f.list?`list="${f.list}"`:''} autocomplete="off">`;
+  else if(f.t==='number') inner=`<input id="${id}" name="${f.k}" type="number" min="${f.min??0}" step="1" value="${esc(val)}" ${req}>`;
+  else if(f.t==='date') inner=`<input id="${id}" name="${f.k}" type="date" value="${esc(val)}" ${req}>`;
+  else if(f.t==='select') inner=`<select id="${id}" name="${f.k}" ${req}><option value="">Pilih…</option>${f.opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  else if(f.t==='ref-tech') inner=`<select id="${id}" name="${f.k}" ${req}><option value="">Pilih teknisi…</option>${sorted('technicians').map(t=>`<option value="${t.id}" ${t.id===val?'selected':''}>${esc(t.nama)} (${esc(t.jabatan)})</option>`).join('')}</select>`;
+  else if(f.t==='ref-tool') inner=`<select id="${id}" name="${f.k}" ${req}><option value="">Pilih alat…</option>${S.tools.filter(t=>t.kondisi==='Baik'||t.id===val).map(t=>{const av=(+t.jumlah||0)-activeLoanQty(t.id);return `<option value="${t.id}" ${t.id===val?'selected':''}>${esc(t.nama)} · ${esc(t.nomor)} (tersedia ${av})</option>`}).join('')}</select>`;
+  else if(f.t==='ref-tool-all') inner=`<select id="${id}" name="${f.k}" ${req}><option value="">Pilih alat / part…</option>${sorted('tools').map(t=>`<option value="${t.id}" ${t.id===val?'selected':''}>${esc(t.nama)} · ${esc(t.nomor)} (tersedia ${availQty(t)})</option>`).join('')}</select>`;
+  else if(f.t==='image') inner=`<div class="imgbox"><div id="prev_${f.k}">${val?`<img src="${val}" alt="">`:'<div class="ph">Belum ada foto</div>'}</div>
+      <div><input type="file" accept="image/*" id="file_${f.k}" data-img="${f.k}" style="padding:6px">
+      <div class="hint">Foto dikecilkan otomatis agar hemat penyimpanan.</div>
+      ${val?`<button type="button" class="btn sm danger" data-rmimg="${f.k}" style="margin-top:6px">Hapus foto</button>`:''}</div></div>`;
+  return `<div class="fld"><label for="${id}">${f.l}${f.req?' *':''}</label>${inner}${f.hint?`<div class="hint">${f.hint}</div>`:''}</div>`;
+}
+function openForm(key,id){
+  const m=MOD[key], row=id?byId(S[key],id):null;
+  if(key==='loans'&&!id){ if(!S.technicians.length) return toast('Isi Data Teknisi terlebih dahulu',true); if(!S.tools.some(t=>t.kondisi==='Baik')) return toast('Belum ada alat berkondisi Baik di gudang',true); }
+  if(key==='techStock'&&!id&&!S.technicians.length) return toast('Isi Data Teknisi terlebih dahulu',true);
+  Object.keys(imgState).forEach(k=>delete imgState[k]);
+  m.fields.filter(f=>f.t==='image').forEach(f=>imgState[f.k]=row?.[f.k]||'');
+  const parts=m.fields.map(f=>{ let v=row?row[f.k]:(typeof f.def==='function'?f.def():f.def); return {h:fieldHTML(f,v??''),half:!!f.half}; });
+  let body='';
+  for(let i=0;i<parts.length;i++){ if(parts[i].half&&parts[i+1]&&parts[i+1].half){ body+=`<div class="two">${parts[i].h}${parts[i+1].h}</div>`; i++; } else body+=parts[i].h; }
+  $('#modal').innerHTML=`<header><span>${id?'Ubah':'Tambah'} · ${m.title}</span><button type="button" data-close aria-label="Tutup">×</button></header>
+    <form id="form" novalidate>${body}<div class="mf"><button type="button" class="btn light" data-close>Batal</button><button class="btn" type="submit">Simpan</button></div></form>`;
+  $('#ov').classList.add('show');
+  $('#form').onsubmit=e=>{ e.preventDefault(); saveForm(key,id); };
+  const first=$('#form input,#form select'); first&&first.focus();
+}
+function closeModal(){ $('#ov').classList.remove('show'); }
+async function saveForm(key,id){
+  const m=MOD[key], fd=new FormData($('#form')), data={};
+  for(const f of m.fields){
+    if(f.t==='image'){ data[f.k]=imgState[f.k]||''; continue; }
+    let v=(fd.get(f.k)||'').toString().trim();
+    if(f.req&&!v) return toast(`${f.l} wajib diisi`,true);
+    data[f.k]= f.t==='number' ? (v===''?0:Math.max(0,parseInt(v,10)||0)) : v;
   }
-  draw('');
-  wrap.querySelector('#search-alat').oninput = (e)=> draw(e.target.value);
-  wrap.querySelector('#add-alat-btn').onclick = ()=>{ state.modal={type:'alat-form', data:null}; render(); };
-}
-
-/* =========================================================================
-   9. TAB: STOK MATERIAL WS
-========================================================================= */
-function renderMaterialTab(){
-  const content = document.getElementById('content');
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <div class="toolbar">
-      <input type="text" id="search-mat" placeholder="Cari nama material / jenis..." />
-      <button class="btn" id="add-mat-btn">+ Tambah Material</button>
-    </div>
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>Foto</th><th>Nama Alat</th><th>Jenis</th><th>Jumlah Pcs</th><th>Total</th>
-        <th>Harga</th><th>Posisi Tempat</th><th></th>
-      </tr></thead>
-      <tbody id="mat-tbody"></tbody>
-    </table>
-    </div>
-  `;
-  content.appendChild(wrap);
-
-  const tbody = wrap.querySelector('#mat-tbody');
-  function draw(filter){
-    const f = (filter||'').toLowerCase();
-    const rows = state.material.filter(m =>
-      !f || (m.namaAlat||'').toLowerCase().includes(f) || (m.jenis||'').toLowerCase().includes(f));
-    tbody.innerHTML = rows.length ? rows.map(m=>{
-      const posisi = m.posisi==='Lainnya' ? `Lainnya - ${esc(m.posisiLainnya)}` : esc(m.posisi);
-      return `
-      <tr>
-        <td>${m.fotoURL? `<img class="thumb" src="${m.fotoURL}">` : '-'}</td>
-        <td>${esc(m.namaAlat)}</td>
-        <td>${esc(m.jenis)}</td>
-        <td>${esc(m.jumlahPcs)}</td>
-        <td>${esc(m.total)}</td>
-        <td>${m.harga? 'Rp '+Number(m.harga).toLocaleString('id-ID') : '-'}</td>
-        <td>${posisi}</td>
-        <td>
-          <button class="btn small secondary" data-edit="${m.id}">Edit</button>
-          <button class="btn small danger" data-del="${m.id}">Hapus</button>
-        </td>
-      </tr>`;
-    }).join('') : `<tr class="empty-row"><td colspan="8">Belum ada data material.</td></tr>`;
-
-    tbody.querySelectorAll('[data-edit]').forEach(b=>{
-      b.onclick = ()=>{ state.modal={type:'material-form', data: state.material.find(x=>x.id===b.dataset.edit)}; render(); };
-    });
-    tbody.querySelectorAll('[data-del]').forEach(b=>{
-      b.onclick = ()=>{ if(confirm('Hapus data material ini?')) db.collection('stokMaterial').doc(b.dataset.del).delete().then(()=>showToast('Data dihapus')); };
-    });
+  if(key==='loans'){
+    const t=byId(S.tools,data.alatId); const used=S.loans.filter(l=>l.alatId===data.alatId&&!l.tanggalKembali&&l.id!==id).reduce((a,l)=>a+(+l.jumlah||0),0);
+    if(!data.tanggalKembali && t && data.jumlah>(+t.jumlah||0)-used) return toast(`Stok ${t.nama} hanya tersedia ${(+t.jumlah||0)-used}`,true);
+    if(data.tanggalKembali && data.tanggalKembali<data.tanggal) return toast('Tanggal dikembalikan tidak boleh sebelum tanggal pengambilan',true);
+    if(data.jatuhTempo<data.tanggal) return toast('Batas pengembalian tidak boleh sebelum tanggal pengambilan',true);
   }
-  draw('');
-  wrap.querySelector('#search-mat').oninput = (e)=> draw(e.target.value);
-  wrap.querySelector('#add-mat-btn').onclick = ()=>{ state.modal={type:'material-form', data:null}; render(); };
+  try{
+    if(key==='stockLog'){
+      const t=byId(S.tools,data.alatId); if(!t) return toast('Alat tidak ditemukan',true);
+      if(data.jumlah<1) return toast('Jumlah minimal 1',true);
+      if(data.tipe==='Keluar' && data.jumlah>availQty(t)) return toast(`Stok ${t.nama} yang tersedia hanya ${availQty(t)}`,true);
+      await DB.update('tools',t.id,{jumlah:(+t.jumlah||0)+(data.tipe==='Masuk'?data.jumlah:-data.jumlah)});
+      await DB.add(key,{...data,namaAlat:t.nama,createdAt:Date.now()});
+    }
+    else if(id) await DB.update(key,id,data);
+    else await DB.add(key,{...data,...(m.sortable?{urutan:Math.max(-1,...S[key].map(r=>r.urutan??-1))+1}:{}),createdAt:Date.now()});
+    closeModal(); toast(id?'Perubahan disimpan':'Data ditambahkan');
+  }catch(e){ toast('Gagal menyimpan: '+e.message,true); }
 }
 
-/* =========================================================================
-   10. TAB: KARTU PEMINJAMAN ALAT
-========================================================================= */
-function renderPinjamTab(){
-  const content = document.getElementById('content');
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <div class="toolbar">
-      <input type="text" id="search-pinjam" placeholder="Cari nama peminjam / alat..." />
-      <button class="btn" id="add-pinjam-btn">+ Tambah Peminjaman</button>
-    </div>
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>Nama Peminjam</th><th>Alat yang Dipinjam</th><th>Tgl Pinjam</th><th>Tgl Kembali</th><th>Status</th><th></th>
-      </tr></thead>
-      <tbody id="pinjam-tbody"></tbody>
-    </table>
-    </div>
-  `;
-  content.appendChild(wrap);
-
-  const tbody = wrap.querySelector('#pinjam-tbody');
-  function draw(filter){
-    const f = (filter||'').toLowerCase();
-    const rows = state.pinjam.filter(p =>
-      !f || (p.namaPeminjam||'').toLowerCase().includes(f) || (p.namaAlat||'').toLowerCase().includes(f));
-    tbody.innerHTML = rows.length ? rows.map(p=>{
-      const sudahKembali = p.tanggalKembaliAktual ? true : false;
-      return `
-      <tr>
-        <td>${esc(p.namaPeminjam)}</td>
-        <td>${esc(p.namaAlat)}</td>
-        <td>${esc(p.tanggalPinjam)}</td>
-        <td>${esc(p.tanggalKembali)}</td>
-        <td><span class="badge ${sudahKembali?'baik':'hilang'}">${sudahKembali?'Sudah Kembali':'Dipinjam'}</span></td>
-        <td>
-          <button class="btn small secondary" data-edit="${p.id}">Edit</button>
-          <button class="btn small danger" data-del="${p.id}">Hapus</button>
-        </td>
-      </tr>`;
-    }).join('') : `<tr class="empty-row"><td colspan="6">Belum ada data peminjaman.</td></tr>`;
-
-    tbody.querySelectorAll('[data-edit]').forEach(b=>{
-      b.onclick = ()=>{ state.modal={type:'pinjam-form', data: state.pinjam.find(x=>x.id===b.dataset.edit)}; render(); };
-    });
-    tbody.querySelectorAll('[data-del]').forEach(b=>{
-      b.onclick = ()=>{ if(confirm('Hapus data peminjaman ini?')) db.collection('peminjaman').doc(b.dataset.del).delete().then(()=>showToast('Data dihapus')); };
-    });
-  }
-  draw('');
-  wrap.querySelector('#search-pinjam').oninput = (e)=> draw(e.target.value);
-  wrap.querySelector('#add-pinjam-btn').onclick = ()=>{ state.modal={type:'pinjam-form', data:null}; render(); };
-}
-
-/* =========================================================================
-   10b. TAB: PEMINJAMAN FREON
-========================================================================= */
-function hitungNilaiAkhirFreon(sebelum, isiToko, kembali){
-  const s = parseFloat(sebelum)||0, i = parseFloat(isiToko)||0, k = parseFloat(kembali)||0;
-  return +(s + i - k).toFixed(2);
-}
-
-function renderFreonTab(){
-  const content = document.getElementById('content');
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <div class="toolbar">
-      <input type="text" id="search-freon" placeholder="Cari nama teknisi / no. freon..." />
-      <button class="btn" id="add-freon-btn">+ Tambah Peminjaman Freon</button>
-    </div>
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>Nama Teknisi</th><th>Jabatan</th><th>Jenis</th><th>No. Freon</th>
-        <th>Sebelum (kg)</th><th>Isi Toko (kg)</th><th>Kembali (kg)</th><th>Nilai Akhir (kg)</th><th></th>
-      </tr></thead>
-      <tbody id="freon-tbody"></tbody>
-    </table>
-    </div>
-  `;
-  content.appendChild(wrap);
-
-  const tbody = wrap.querySelector('#freon-tbody');
-  function draw(filter){
-    const f = (filter||'').toLowerCase();
-    const rows = state.freon.filter(x =>
-      !f || (x.namaTeknisi||'').toLowerCase().includes(f) || (x.nomorFreon||'').toLowerCase().includes(f));
-    tbody.innerHTML = rows.length ? rows.map(x=>`
-      <tr>
-        <td>${esc(x.namaTeknisi)}</td>
-        <td>${esc(x.jabatan)}</td>
-        <td>${esc(x.jenisFreon)}</td>
-        <td>${esc(x.nomorFreon)}</td>
-        <td>${esc(x.timbangSebelumNilai)}</td>
-        <td>${esc(x.isiTokoNilai)}</td>
-        <td>${esc(x.timbangKembaliNilai)}</td>
-        <td><b>${esc(x.nilaiAkhir)}</b></td>
-        <td>
-          <button class="btn small secondary" data-view="${x.id}">Detail</button>
-          <button class="btn small secondary" data-edit="${x.id}">Edit</button>
-          <button class="btn small danger" data-del="${x.id}">Hapus</button>
-        </td>
-      </tr>`).join('') : `<tr class="empty-row"><td colspan="9">Belum ada data peminjaman freon.</td></tr>`;
-
-    tbody.querySelectorAll('[data-view]').forEach(b=>{
-      b.onclick = ()=>{ state.modal={type:'freon-detail', data: state.freon.find(x=>x.id===b.dataset.view)}; render(); };
-    });
-    tbody.querySelectorAll('[data-edit]').forEach(b=>{
-      b.onclick = ()=>{ state.modal={type:'freon-form', data: state.freon.find(x=>x.id===b.dataset.edit)}; render(); };
-    });
-    tbody.querySelectorAll('[data-del]').forEach(b=>{
-      b.onclick = ()=>{ if(confirm('Hapus data peminjaman freon ini?')) db.collection('peminjamanFreon').doc(b.dataset.del).delete().then(()=>showToast('Data dihapus')); };
-    });
-  }
-  draw('');
-  wrap.querySelector('#search-freon').oninput = (e)=> draw(e.target.value);
-  wrap.querySelector('#add-freon-btn').onclick = ()=>{ state.modal={type:'freon-form', data:null}; render(); };
-}
-
-/* =========================================================================
-   11. MODALS
-========================================================================= */
-function renderModal(){
-  const m = state.modal;
-  if(!m) return '';
-  if(m.type==='alat-form') return modalAlatForm(m.data);
-  if(m.type==='material-form') return modalMaterialForm(m.data);
-  if(m.type==='pinjam-form') return modalPinjamForm(m.data);
-  if(m.type==='freon-form') return modalFreonForm(m.data);
-  if(m.type==='freon-detail') return modalFreonDetail(m.data);
-  if(m.type==='kategori-detail') return modalKategoriDetail(m.key);
-  if(m.type==='rusak-detail') return modalRusakDetail();
-  return '';
-}
-
-function modalAlatForm(d){
-  d = d || {};
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>${d.id?'Edit':'Tambah'} Alat Kerja Teknisi</h3>
-      <form id="alat-form">
-        <label>Nama Teknisi</label>
-        <input name="namaTeknisi" value="${esc(d.namaTeknisi)}" required />
-        <div class="row2">
-          <div><label>Nama Alat</label><input name="namaAlat" value="${esc(d.namaAlat)}" required /></div>
-          <div><label>Merek</label><input name="merek" value="${esc(d.merek)}" /></div>
-        </div>
-        <div class="row2">
-          <div><label>Jumlah</label><input type="number" name="jumlah" value="${esc(d.jumlah)}" required /></div>
-          <div><label>Kondisi</label>
-            <select name="kondisi">
-              <option ${d.kondisi==='Baik'?'selected':''}>Baik</option>
-              <option ${d.kondisi==='Rusak'?'selected':''}>Rusak</option>
-              <option ${d.kondisi==='Hilang'?'selected':''}>Hilang</option>
-            </select>
-          </div>
-        </div>
-        <label>Nomor Alat</label>
-        <input name="nomorAlat" value="${esc(d.nomorAlat)}" />
-        <label>Foto Alat</label>
-        <input type="file" name="foto" accept="image/*" />
-        ${d.fotoURL? `<img class="img-preview" src="${d.fotoURL}">`:''}
-        <label>Keterangan Lainnya</label>
-        <textarea name="keterangan">${esc(d.keterangan)}</textarea>
-        <div class="row2">
-          <div><label>Tanggal Masuk</label><input type="date" name="tanggalMasuk" value="${esc(d.tanggalMasuk)}" /></div>
-          <div><label>Pemilik / Penanggungjawab</label><input name="pemilik" value="${esc(d.pemilik)}" /></div>
-        </div>
-        <label>Jabatan</label>
-        <input name="jabatan" value="${esc(d.jabatan)}" />
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" id="modal-cancel">Batal</button>
-          <button type="submit" class="btn" id="modal-submit">Simpan</button>
-        </div>
-      </form>
-    </div>
+/* ---------- Pengaturan ---------- */
+let setLogo=null;
+function renderSettings(){
+  const c=cfgApp(), fb=getFbConfig(); setLogo=c.logo||'';
+  $('#content').innerHTML=`<h2 class="pt">Pengaturan</h2><p class="sub">Nama aplikasi, logo, alarm, dan koneksi database.</p>
+  <div class="setgrid">
+    <form class="card" id="setForm"><h3>Tampilan aplikasi</h3>
+      <div style="display:grid;gap:14px">
+        <div class="fld"><label for="s_nama">Nama aplikasi</label><input id="s_nama" value="${esc(c.namaApp)}" required></div>
+        <div class="fld"><label>Logo</label><div class="imgbox"><div id="logoPrev">${setLogo?`<img src="${setLogo}" alt="Logo" style="object-fit:contain">`:'<div class="ph">Belum ada logo</div>'}</div>
+          <div><input type="file" id="s_logo" accept="image/*" style="padding:6px"><div class="hint">PNG transparan didukung.</div>
+          <button type="button" class="btn sm danger" id="logoRm" style="margin-top:6px">Hapus logo</button></div></div></div>
+        <div class="two"><div class="fld"><label for="s_jam">Jam batas pengembalian</label><input id="s_jam" type="time" value="${esc(c.jamBatas)}"><div class="hint">Alarm berbunyi setelah jam ini pada tanggal batas.</div></div>
+        <div class="fld"><label for="s_hari">Batas default (hari)</label><input id="s_hari" type="number" min="0" value="${esc(c.alarmDays)}"><div class="hint">0 = harus kembali di hari yang sama.</div></div></div>
+        <div><button class="btn" type="submit">Simpan pengaturan</button></div>
+      </div></form>
+    <div class="card"><h3>Alarm</h3>
+      <p style="color:var(--muted);margin-bottom:12px">Alarm berupa banner merah, bunyi sirene tiap menit, dan notifikasi browser. Halaman ini harus tetap terbuka. Bunyi aktif setelah Anda mengklik halaman sekali.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn light" id="testBeep">Tes bunyi alarm</button><button class="btn light" id="unmute">Aktifkan kembali suara</button></div></div>
+    <div class="card"><h3>Cadangan data</h3><p style="color:var(--muted);margin-bottom:12px">Unduh seluruh data (termasuk foto) sebagai file JSON, atau pulihkan dari file cadangan.</p><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn light" id="bkExp" type="button">Unduh cadangan</button><label class="btn light" style="cursor:pointer">Pulihkan dari file<input type="file" id="bkImp" accept="application/json,.json" hidden></label></div></div>
+    <div class="card"><h3>Koneksi Firebase</h3>
+      <p style="margin-bottom:10px">Status: <span class="pill ${MODE==='firebase'?'ok':'warn'}">${MODE==='firebase'?'Tersambung ke '+esc(fb.projectId):'Belum tersambung (data tersimpan di browser ini)'}</span></p>
+      <div class="fld"><label for="s_fb">Tempel firebaseConfig</label><textarea class="cfg" id="s_fb" placeholder='{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'>${fb?esc(JSON.stringify(fb,null,2)):''}</textarea></div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn" id="fbSave">Simpan &amp; sambungkan</button>${fb?'<button class="btn danger" id="fbOff">Putuskan</button>':''}</div>
+      <div class="note"><b>Cara menyiapkan:</b><ol>
+        <li>Buka console.firebase.google.com, buat project, lalu tambahkan Web App untuk mendapat firebaseConfig.</li>
+        <li>Buka <b>Build › Firestore Database</b>, klik Create database.</li>
+        <li>Di tab <b>Rules</b>, atur akses sesuai kebutuhan Anda lalu Publish.</li>
+        <li>Tempel konfigurasi di atas, klik Simpan &amp; sambungkan.</li></ol></div></div>
   </div>`;
+  $('#s_logo').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ setLogo=await compressImage(f,256,'image/png'); $('#logoPrev').innerHTML=`<img src="${setLogo}" alt="Logo" style="object-fit:contain">`; }catch(er){ toast(er.message,true); } };
+  $('#logoRm').onclick=()=>{ setLogo=''; $('#logoPrev').innerHTML='<div class="ph">Belum ada logo</div>'; $('#s_logo').value=''; };
+  $('#setForm').onsubmit=async e=>{ e.preventDefault();
+    const d={namaApp:$('#s_nama').value.trim()||DEF.namaApp,logo:setLogo,jamBatas:$('#s_jam').value||'17:00',alarmDays:Math.max(0,parseInt($('#s_hari').value,10)||0)};
+    try{ await DB.set('settings','app',d); S.settings={...S.settings,...d}; applyBrand(); toast('Pengaturan disimpan'); }catch(er){ toast('Gagal menyimpan: '+er.message,true); } };
+  $('#testBeep').onclick=beep;
+  $('#bkExp').onclick=()=>{ const d={app:'mmt-inventory',tanggal:new Date().toISOString(),data:{}}; Object.keys(MOD).forEach(k=>d.data[k]=S[k]); d.data.settings=S.settings&&S.settings.id?[S.settings]:[];
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'})); a.download='cadangan-inventory-'+todayStr()+'.json'; a.click(); URL.revokeObjectURL(a.href); };
+  $('#bkImp').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+    try{ const d=JSON.parse(await f.text()); if(d.app!=='mmt-inventory'||!d.data) throw new Error('File bukan cadangan aplikasi ini');
+      if(!confirm('Pulihkan data dari file ini? Data dengan ID yang sama akan ditimpa.')) return;
+      let n=0; for(const k of [...Object.keys(MOD),'settings']){ for(const r of (d.data[k]||[])){ const {id,...rest}=r; await DB.set(k,id,rest); n++; } }
+      toast(n+' data dipulihkan'); }catch(er){ toast('Gagal memulihkan: '+er.message,true); } e.target.value=''; };
+  $('#unmute').onclick=()=>{ muteUntil=0; localStorage.removeItem('mmt_mute'); toast('Suara alarm aktif'); };
+  $('#fbSave').onclick=()=>{
+    const txt=$('#s_fb').value; const cfg={};
+    ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId','measurementId'].forEach(k=>{ const m=txt.match(new RegExp('["\']?'+k+'["\']?\\s*:\\s*["\']([^"\']+)["\']')); if(m) cfg[k]=m[1]; });
+    if(!cfg.projectId||!cfg.apiKey) return toast('Konfigurasi tidak lengkap: apiKey dan projectId wajib ada',true);
+    localStorage.setItem('mmt_fbconfig',JSON.stringify(cfg)); toast('Menyambungkan…'); setTimeout(()=>location.reload(),600); };
+  const off=$('#fbOff'); if(off) off.onclick=()=>{ localStorage.removeItem('mmt_fbconfig'); location.reload(); };
 }
 
-function modalMaterialForm(d){
-  d = d || {};
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>${d.id?'Edit':'Tambah'} Stok Material WS</h3>
-      <form id="material-form">
-        <label>Foto Alat</label>
-        <input type="file" name="foto" accept="image/*" />
-        ${d.fotoURL? `<img class="img-preview" src="${d.fotoURL}">`:''}
-        <label>Nama Alat</label>
-        <input name="namaAlat" value="${esc(d.namaAlat)}" required />
-        <div class="row2">
-          <div><label>Jenis</label><input name="jenis" value="${esc(d.jenis)}" /></div>
-          <div><label>Jumlah Pcs</label><input type="number" name="jumlahPcs" value="${esc(d.jumlahPcs)}" /></div>
-        </div>
-        <div class="row2">
-          <div><label>Total</label><input name="total" value="${esc(d.total)}" /></div>
-          <div><label>Harga (Rp)</label><input type="number" name="harga" value="${esc(d.harga)}" /></div>
-        </div>
-        <label>Posisi Tempat</label>
-        <select name="posisi" id="posisi-select">
-          <option ${d.posisi==='Gudang'?'selected':''}>Gudang</option>
-          <option ${d.posisi==='Tas Tools'?'selected':''}>Tas Tools</option>
-          <option ${d.posisi==='Lainnya'?'selected':''}>Lainnya</option>
-        </select>
-        <div id="posisi-lainnya-wrap" style="display:${d.posisi==='Lainnya'?'block':'none'}">
-          <label>Keterangan Posisi Lainnya</label>
-          <input name="posisiLainnya" value="${esc(d.posisiLainnya)}" />
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" id="modal-cancel">Batal</button>
-          <button type="submit" class="btn" id="modal-submit">Simpan</button>
-        </div>
-      </form>
-    </div>
-  </div>`;
+/* ---------- Ekspor CSV ---------- */
+function exportCsv(key){
+  const m=MOD[key], rows=rowsOf(key); if(!rows.length) return toast('Tidak ada data untuk diunduh',true);
+  const strip=h=>String(h).replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim();
+  const cols=m.cols.filter(c=>c[0]!=='Foto');
+  const lines=[cols.map(c=>c[0]).join(',')].concat(rows.map(r=>cols.map(c=>'"'+strip(c[1](r)).replace(/"/g,'""')+'"').join(',')));
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));
+  a.download=`${key}-${todayStr()}.csv`; a.click(); URL.revokeObjectURL(a.href);
 }
 
-function modalPinjamForm(d){
-  d = d || {};
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>${d.id?'Edit':'Tambah'} Kartu Peminjaman Alat</h3>
-      <form id="pinjam-form">
-        <label>Nama Peminjam</label>
-        <input name="namaPeminjam" value="${esc(d.namaPeminjam)}" required />
-        <label>Nama Alat yang Dipinjam (Pemilik Alat)</label>
-        <input name="namaAlat" value="${esc(d.namaAlat)}" placeholder="cth: Bor Bosch - milik Andi" required />
-        <div class="row2">
-          <div><label>Tanggal Dipinjam</label><input type="date" name="tanggalPinjam" value="${esc(d.tanggalPinjam)}" /></div>
-          <div><label>Tanggal Rencana Kembali</label><input type="date" name="tanggalKembali" value="${esc(d.tanggalKembali)}" /></div>
-        </div>
-        <label>Tanggal Kembali Aktual (kosongkan jika belum kembali)</label>
-        <input type="date" name="tanggalKembaliAktual" value="${esc(d.tanggalKembaliAktual)}" />
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" id="modal-cancel">Batal</button>
-          <button type="submit" class="btn" id="modal-submit">Simpan</button>
-        </div>
-      </form>
-    </div>
-  </div>`;
+/* ---------- Event global ---------- */
+document.addEventListener('click',async e=>{
+  const t=e.target;
+  if(t.closest('[data-close]')||t.id==='ov') return closeModal();
+  if(t.closest('#lb')) return $('#lb').classList.remove('show');
+  const z=t.closest('[data-zoom]'); if(z){ $('#lbImg').src=z.src; return $('#lb').classList.add('show'); }
+  const ed=t.closest('[data-edit]'); if(ed) return openForm(page,ed.dataset.edit);
+  const del=t.closest('[data-del]'); if(del){
+    const delMsg=page==='stockLog'?'Hapus catatan ini? Jumlah stok alat akan dikembalikan seperti sebelum mutasi.':'Hapus data ini? Tindakan ini tidak bisa dibatalkan.';
+    if(confirm(delMsg)){ try{
+      if(page==='stockLog'){ const lg=byId(S.stockLog,del.dataset.del), t=lg&&byId(S.tools,lg.alatId);
+        if(t) await DB.update('tools',t.id,{jumlah:Math.max(0,(+t.jumlah||0)+(lg.tipe==='Masuk'?-lg.jumlah:+lg.jumlah))}); }
+      await DB.remove(page,del.dataset.del); toast('Data dihapus'); }catch(er){ toast('Gagal menghapus: '+er.message,true); } } return; }
+  const rt=t.closest('[data-return]'); if(rt){ try{ await DB.update('loans',rt.dataset.return,{tanggalKembali:todayStr()}); toast('Alat ditandai sudah dikembalikan'); }catch(er){ toast(er.message,true); } return; }
+  const rm=t.closest('[data-rmimg]'); if(rm){ imgState[rm.dataset.rmimg]=''; $('#prev_'+rm.dataset.rmimg).innerHTML='<div class="ph">Belum ada foto</div>'; rm.remove(); }
+});
+document.addEventListener('change',async e=>{
+  const f=e.target.closest('[data-img]'); if(!f||!f.files[0]) return;
+  try{ const k=f.dataset.img; imgState[k]=await compressImage(f.files[0]); $('#prev_'+k).innerHTML=`<img src="${imgState[k]}" alt="">`; }
+  catch(er){ toast(er.message,true); }
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); $('#lb').classList.remove('show'); } });
+
+/* ---------- Geser untuk mengubah urutan ---------- */
+function gripCell(off){
+  return `<td class="gc"><span class="grip${off?' off':''}" title="${off?'Hapus kata pencarian untuk mengatur urutan':'Tahan lalu geser untuk mengubah urutan'}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5.5" r="1.7"/><circle cx="15" cy="5.5" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18.5" r="1.7"/><circle cx="15" cy="18.5" r="1.7"/></svg></span></td>`;
+}
+let drag=null;
+document.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('.grip'); if(!g) return;
+  if(g.classList.contains('off')){ toast('Hapus kata pencarian dulu untuk mengatur urutan'); return; }
+  const tr=g.closest('tr'), host=$('#tbl'); if(!tr||!host) return;
+  e.preventDefault();
+  drag={tr,tb:tr.parentNode,pid:e.pointerId,key:page};
+  try{ host.setPointerCapture(e.pointerId); }catch(er){}
+  tr.classList.add('dragging'); document.body.classList.add('dnd');
+});
+document.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.pid) return;
+  let before=null;
+  for(const r of drag.tb.children){ if(r===drag.tr) continue; const b=r.getBoundingClientRect(); if(e.clientY<b.top+b.height/2){ before=r; break; } }
+  if(before!==drag.tr.nextElementSibling) drag.tb.insertBefore(drag.tr,before);
+  if(e.clientY<90) window.scrollBy(0,-16); else if(e.clientY>innerHeight-90) window.scrollBy(0,16);
+});
+function endDrag(){
+  if(!drag) return; const {tr,tb,key}=drag; drag=null;
+  tr.classList.remove('dragging'); document.body.classList.remove('dnd');
+  saveOrder(key,[...tb.children].map(r=>r.dataset.id));
+}
+['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,e=>{ if(drag&&e.pointerId===drag.pid) endDrag(); }));
+async function saveOrder(key,ids){
+  if(ids.join()===rowsOf(key).map(r=>r.id).join()) return;
+  const ups=[]; ids.forEach((id,i)=>{ const r=byId(S[key],id); if(r&&r.urutan!==i){ r.urutan=i; ups.push(DB.update(key,id,{urutan:i})); } });
+  renderTable();
+  try{ await Promise.all(ups); toast('Urutan disimpan'); }catch(er){ toast('Gagal menyimpan urutan: '+er.message,true); }
 }
 
-function modalFreonForm(d){
-  d = d || {};
-  const nilaiAkhirPreview = hitungNilaiAkhirFreon(d.timbangSebelumNilai, d.isiTokoNilai, d.timbangKembaliNilai);
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>🧪 ${d.id?'Edit':'Tambah'} Peminjaman Freon</h3>
-      <form id="freon-form">
-        <div class="row2">
-          <div><label>Nama Teknisi</label><input name="namaTeknisi" value="${esc(d.namaTeknisi)}" required /></div>
-          <div><label>Jabatan</label><input name="jabatan" value="${esc(d.jabatan)}" /></div>
-        </div>
-        <div class="row2">
-          <div><label>Jenis Freon</label>
-            <select name="jenisFreon">
-              <option ${d.jenisFreon==='R32'?'selected':''}>R32</option>
-              <option ${d.jenisFreon==='R22'?'selected':''}>R22</option>
-              <option ${d.jenisFreon==='R410'?'selected':''}>R410</option>
-            </select>
-          </div>
-          <div><label>Nomor Freon</label><input name="nomorFreon" value="${esc(d.nomorFreon)}" /></div>
-        </div>
-
-        <label style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;display:block;">Timbangan Sebelum Digunakan (kg)</label>
-        <input type="number" step="0.01" name="timbangSebelumNilai" id="fr-sebelum" value="${esc(d.timbangSebelumNilai)}" required />
-        <label>Upload Foto Timbangan Sebelum Digunakan</label>
-        <input type="file" name="fotoSebelum" accept="image/*" />
-        ${d.timbangSebelumFoto? `<img class="img-preview" src="${d.timbangSebelumFoto}">`:''}
-
-        <label style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;display:block;">Isi di Toko (kg)</label>
-        <input type="number" step="0.01" name="isiTokoNilai" id="fr-isitoko" value="${esc(d.isiTokoNilai)}" required />
-        <label>Upload Foto Isi di Toko</label>
-        <input type="file" name="fotoIsiToko" accept="image/*" />
-        ${d.isiTokoFoto? `<img class="img-preview" src="${d.isiTokoFoto}">`:''}
-
-        <label style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;display:block;">Timbangan Saat Kembali (kg)</label>
-        <input type="number" step="0.01" name="timbangKembaliNilai" id="fr-kembali" value="${esc(d.timbangKembaliNilai)}" required />
-        <label>Upload Foto Timbangan Saat Kembali</label>
-        <input type="file" name="fotoKembali" accept="image/*" />
-        ${d.timbangKembaliFoto? `<img class="img-preview" src="${d.timbangKembaliFoto}">`:''}
-
-        <div style="margin-top:18px;padding:14px;background:#f0f3f7;border-radius:10px;">
-          <label style="margin:0;">Nilai Akhir (Sebelum + Isi Toko − Kembali)</label>
-          <div id="fr-nilai-akhir" style="font-size:22px;font-weight:800;color:var(--navy);">${nilaiAkhirPreview} kg</div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" id="modal-cancel">Batal</button>
-          <button type="submit" class="btn" id="modal-submit">Simpan</button>
-        </div>
-      </form>
-    </div>
-  </div>`;
+/* ---------- Mulai ---------- */
+function refresh(){
+  if(page==='dashboard') renderDashboard(); else if(page!=='settings') renderTable();
+  checkAlarm();
 }
-
-function modalFreonDetail(d){
-  d = d || {};
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>🧪 Detail Peminjaman Freon</h3>
-      <div class="detail-list">
-        <div class="detail-item">
-          <div class="dt-name">${esc(d.namaTeknisi)} - ${esc(d.jabatan)}</div>
-          <div class="dt-row">Jenis: ${esc(d.jenisFreon)} | No. Freon: ${esc(d.nomorFreon)||'-'}</div>
-        </div>
-        <div class="detail-item">
-          <div class="dt-name">Timbangan Sebelum Digunakan: ${esc(d.timbangSebelumNilai)} kg</div>
-          ${d.timbangSebelumFoto? `<img class="img-preview" src="${d.timbangSebelumFoto}">`:''}
-        </div>
-        <div class="detail-item">
-          <div class="dt-name">Isi di Toko: ${esc(d.isiTokoNilai)} kg</div>
-          ${d.isiTokoFoto? `<img class="img-preview" src="${d.isiTokoFoto}">`:''}
-        </div>
-        <div class="detail-item">
-          <div class="dt-name">Timbangan Saat Kembali: ${esc(d.timbangKembaliNilai)} kg</div>
-          ${d.timbangKembaliFoto? `<img class="img-preview" src="${d.timbangKembaliFoto}">`:''}
-        </div>
-        <div class="detail-item" style="background:#f0f3f7;">
-          <div class="dt-name">Nilai Akhir Freon Terpakai: ${esc(d.nilaiAkhir)} kg</div>
-          <div class="dt-row">Rumus: Sebelum + Isi Toko − Kembali</div>
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function modalKategoriDetail(key){
-  const kat = KATEGORI_DASHBOARD.find(k=>k.key===key);
-  const items = itemsKategori(key);
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>${kat.icon} Detail ${esc(kat.label)}</h3>
-      <div class="detail-list">
-        ${items.length ? items.map(a=>`
-          <div class="detail-item">
-            <div class="dt-name">${esc(a.namaAlat)} ${a.merek? '- '+esc(a.merek):''}</div>
-            <div class="dt-row">Jumlah: ${esc(a.jumlah)} | Kondisi: <span class="badge ${badgeClass(a.kondisi)}">${esc(a.kondisi)}</span></div>
-            <div class="dt-row">Teknisi: ${esc(a.namaTeknisi)} | Penanggung Jawab: ${esc(a.pemilik)}</div>
-            <div class="dt-row">No. Alat: ${esc(a.nomorAlat)||'-'} | Tgl Masuk: ${esc(a.tanggalMasuk)||'-'}</div>
-          </div>
-        `).join('') : `<div class="loading-note">Belum ada data untuk kategori ini.</div>`}
-      </div>
-    </div>
-  </div>`;
-}
-
-function modalRusakDetail(){
-  const items = rusakHilangItems();
-  return `
-  <div class="overlay" id="ov">
-    <div class="modal">
-      <button class="modal-close" id="modal-close">✕</button>
-      <h3>⚠️ Alat Rusak / Hilang</h3>
-      <div class="detail-list">
-        ${items.length ? items.map(a=>`
-          <div class="detail-item">
-            <div class="dt-name">${esc(a.namaAlat)} <span class="badge ${badgeClass(a.kondisi)}">${esc(a.kondisi)}</span></div>
-            <div class="dt-row">Merek: ${esc(a.merek)||'-'} | Jumlah: ${esc(a.jumlah)}</div>
-            <div class="dt-row">Teknisi: ${esc(a.namaTeknisi)} | Penanggung Jawab: ${esc(a.pemilik)}</div>
-            <div class="dt-row">Keterangan: ${esc(a.keterangan)||'-'}</div>
-          </div>
-        `).join('') : `<div class="loading-note">Tidak ada alat rusak/hilang saat ini. 🎉</div>`}
-      </div>
-    </div>
-  </div>`;
-}
-
-/* =========================================================================
-   12. MODAL EVENTS / SUBMIT HANDLERS
-========================================================================= */
-function bindModalEvents(){
-  const ov = document.getElementById('ov');
-  if(!ov) return;
-  const closeModal = ()=>{ state.modal=null; render(); };
-  document.getElementById('modal-close')?.addEventListener('click', closeModal);
-  document.getElementById('modal-cancel')?.addEventListener('click', closeModal);
-  ov.addEventListener('click', (e)=>{ if(e.target.id==='ov') closeModal(); });
-
-  const posisiSelect = document.getElementById('posisi-select');
-  if(posisiSelect){
-    posisiSelect.addEventListener('change', ()=>{
-      document.getElementById('posisi-lainnya-wrap').style.display =
-        posisiSelect.value==='Lainnya' ? 'block' : 'none';
-    });
-  }
-
-  const alatForm = document.getElementById('alat-form');
-  if(alatForm) alatForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    if(!db){ showToast('Firebase belum dikonfigurasi'); return; }
-    const fd = new FormData(alatForm);
-    const file = fd.get('foto');
-    const editing = state.modal.data;
-    const submitBtn = document.getElementById('modal-submit');
-    submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
-    let fotoURL = editing ? editing.fotoURL || "" : "";
-    try{
-      if(file && file.size > 0) fotoURL = await uploadPhoto(file, 'alatTeknisi', (pct)=>{ submitBtn.textContent = `Mengupload foto ${pct}%...`; });
-      const payload = {
-        namaTeknisi: fd.get('namaTeknisi')||'', namaAlat: fd.get('namaAlat')||'',
-        merek: fd.get('merek')||'', jumlah: fd.get('jumlah')||0, kondisi: fd.get('kondisi')||'Baik',
-        nomorAlat: fd.get('nomorAlat')||'', fotoURL, keterangan: fd.get('keterangan')||'',
-        tanggalMasuk: fd.get('tanggalMasuk')||'', pemilik: fd.get('pemilik')||'', jabatan: fd.get('jabatan')||'',
-        createdAt: editing ? editing.createdAt : firebase.firestore.FieldValue.serverTimestamp(),
-      };
-      if(editing) await db.collection('alatTeknisi').doc(editing.id).set(payload, {merge:true});
-      else await db.collection('alatTeknisi').add(payload);
-      showToast('Data alat tersimpan');
-      state.modal = null; render();
-    } catch(err){ alert('Gagal menyimpan: '+err.message); submitBtn.disabled=false; submitBtn.textContent='Simpan'; }
-  });
-
-  const matForm = document.getElementById('material-form');
-  if(matForm) matForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    if(!db){ showToast('Firebase belum dikonfigurasi'); return; }
-    const fd = new FormData(matForm);
-    const file = fd.get('foto');
-    const editing = state.modal.data;
-    const submitBtn = document.getElementById('modal-submit');
-    submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
-    let fotoURL = editing ? editing.fotoURL || "" : "";
-    try{
-      if(file && file.size > 0) fotoURL = await uploadPhoto(file, 'stokMaterial', (pct)=>{ submitBtn.textContent = `Mengupload foto ${pct}%...`; });
-      const payload = {
-        fotoURL, namaAlat: fd.get('namaAlat')||'', jenis: fd.get('jenis')||'',
-        jumlahPcs: fd.get('jumlahPcs')||0, total: fd.get('total')||'', harga: fd.get('harga')||0,
-        posisi: fd.get('posisi')||'Gudang', posisiLainnya: fd.get('posisiLainnya')||'',
-        createdAt: editing ? editing.createdAt : firebase.firestore.FieldValue.serverTimestamp(),
-      };
-      if(editing) await db.collection('stokMaterial').doc(editing.id).set(payload, {merge:true});
-      else await db.collection('stokMaterial').add(payload);
-      showToast('Data material tersimpan');
-      state.modal = null; render();
-    } catch(err){ alert('Gagal menyimpan: '+err.message); submitBtn.disabled=false; submitBtn.textContent='Simpan'; }
-  });
-
-  const freonForm = document.getElementById('freon-form');
-  if(freonForm){
-    const sInput = document.getElementById('fr-sebelum');
-    const iInput = document.getElementById('fr-isitoko');
-    const kInput = document.getElementById('fr-kembali');
-    const outEl = document.getElementById('fr-nilai-akhir');
-    const updatePreview = ()=>{
-      outEl.textContent = hitungNilaiAkhirFreon(sInput.value, iInput.value, kInput.value) + ' kg';
-    };
-    [sInput, iInput, kInput].forEach(inp => inp.addEventListener('input', updatePreview));
-
-    freonForm.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      if(!db){ showToast('Firebase belum dikonfigurasi'); return; }
-      const fd = new FormData(freonForm);
-      const editing = state.modal.data;
-      const submitBtn = document.getElementById('modal-submit');
-      submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
-      let fotoSebelum = editing ? editing.timbangSebelumFoto || "" : "";
-      let fotoIsiToko = editing ? editing.isiTokoFoto || "" : "";
-      let fotoKembali = editing ? editing.timbangKembaliFoto || "" : "";
-      try{
-        const fSebelum = fd.get('fotoSebelum'), fIsiToko = fd.get('fotoIsiToko'), fKembali = fd.get('fotoKembali');
-        if(fSebelum && fSebelum.size > 0) fotoSebelum = await uploadPhoto(fSebelum, 'peminjamanFreon', (pct)=>{ submitBtn.textContent = `Upload foto 1/3: ${pct}%`; });
-        if(fIsiToko && fIsiToko.size > 0) fotoIsiToko = await uploadPhoto(fIsiToko, 'peminjamanFreon', (pct)=>{ submitBtn.textContent = `Upload foto 2/3: ${pct}%`; });
-        if(fKembali && fKembali.size > 0) fotoKembali = await uploadPhoto(fKembali, 'peminjamanFreon', (pct)=>{ submitBtn.textContent = `Upload foto 3/3: ${pct}%`; });
-
-        const sebelum = fd.get('timbangSebelumNilai');
-        const isiToko = fd.get('isiTokoNilai');
-        const kembali = fd.get('timbangKembaliNilai');
-        const nilaiAkhir = hitungNilaiAkhirFreon(sebelum, isiToko, kembali);
-
-        const payload = {
-          namaTeknisi: fd.get('namaTeknisi')||'', jabatan: fd.get('jabatan')||'',
-          jenisFreon: fd.get('jenisFreon')||'R32', nomorFreon: fd.get('nomorFreon')||'',
-          timbangSebelumNilai: sebelum||0, timbangSebelumFoto: fotoSebelum,
-          isiTokoNilai: isiToko||0, isiTokoFoto: fotoIsiToko,
-          timbangKembaliNilai: kembali||0, timbangKembaliFoto: fotoKembali,
-          nilaiAkhir: nilaiAkhir,
-          createdAt: editing ? editing.createdAt : firebase.firestore.FieldValue.serverTimestamp(),
-        };
-        if(editing) await db.collection('peminjamanFreon').doc(editing.id).set(payload, {merge:true});
-        else await db.collection('peminjamanFreon').add(payload);
-        showToast('Data peminjaman freon tersimpan');
-        state.modal = null; render();
-      } catch(err){ alert('Gagal menyimpan: '+err.message); submitBtn.disabled=false; submitBtn.textContent='Simpan'; }
-    });
-  }
-
-  const pinjamForm = document.getElementById('pinjam-form');
-  if(pinjamForm) pinjamForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    if(!db){ showToast('Firebase belum dikonfigurasi'); return; }
-    const fd = new FormData(pinjamForm);
-    const editing = state.modal.data;
-    const submitBtn = document.getElementById('modal-submit');
-    submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
-    try{
-      const payload = {
-        namaPeminjam: fd.get('namaPeminjam')||'', namaAlat: fd.get('namaAlat')||'',
-        tanggalPinjam: fd.get('tanggalPinjam')||'', tanggalKembali: fd.get('tanggalKembali')||'',
-        tanggalKembaliAktual: fd.get('tanggalKembaliAktual')||'',
-        createdAt: editing ? editing.createdAt : firebase.firestore.FieldValue.serverTimestamp(),
-      };
-      if(editing) await db.collection('peminjaman').doc(editing.id).set(payload, {merge:true});
-      else await db.collection('peminjaman').add(payload);
-      showToast('Data peminjaman tersimpan');
-      state.modal = null; render();
-    } catch(err){ alert('Gagal menyimpan: '+err.message); submitBtn.disabled=false; submitBtn.textContent='Simpan'; }
-  });
-}
-
-/* =========================================================================
-   13. INIT
-========================================================================= */
-render();
-if(state.loggedIn && db) attachListeners();
-
-// re-attach listeners right after successful login too
-const origRender = render;
-document.addEventListener('click', ()=>{
-  if(state.loggedIn && db && !window.__simitraListenersAttached){
-    window.__simitraListenersAttached = true;
-    attachListeners();
-  }
-}, {once:false});
+Object.keys(MOD).forEach(k=>DB.sub(k,rows=>{ S[k]=rows; refresh(); }));
+DB.sub('settings',rows=>{ S.settings=rows.find(r=>r.id==='app')||{}; applyBrand(); if(page==='dashboard') renderDashboard(); });
+applyBrand(); renderNav(); renderPage();
+setInterval(()=>{ if(page==='loans'||page==='dashboard') refresh(); },30000);
 </script>
 </body>
 </html>
